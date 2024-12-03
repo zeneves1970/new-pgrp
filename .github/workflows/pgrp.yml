@@ -11,19 +11,21 @@ jobs:
       # 1. Fazer o checkout do repositório
       - name: Checkout do repositório
         uses: actions/checkout@v3
-
-      # 2. Restaurar o cache com os links já vistos
-      - name: Restaurar cache
-        uses: actions/cache@v3
         with:
-          path: seen_links.txt
-          key: monitor-pgrp-seen-links
+          ref: ${{ github.sha }}  # Garantir que pegue a versão mais recente
 
-      # 3. Configurar o ambiente Python (usando v2)
+      # 2. Desabilitar o cache para verificar se o problema persiste
+      # - name: Restaurar cache
+      #   uses: actions/cache@v3
+      #   with:
+      #     path: seen_links.txt
+      #     key: monitor-pgrp-seen-links
+
+      # 3. Configurar o ambiente Python
       - name: Configurar Python
         uses: actions/setup-python@v2
         with:
-          python-version: '3.10'  # Certifique-se de usar a versão 3.10
+          python-version: '3.10'  # Usando a versão 3.10
 
       # 4. Instalar dependências
       - name: Instalar dependências
@@ -31,7 +33,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install requests beautifulsoup4
 
-      # 5. Executar o programa
+      # 5. Executar o programa de monitoramento
       - name: Executar o monitor
         run: python monitor_pgrp.py
         env:
@@ -43,4 +45,5 @@ jobs:
         uses: actions/cache@v3
         with:
           path: seen_links.txt
-          key: monitor-pgrp-seen-links
+          key: monitor-pgrp-seen-links-${{ github.sha }}  # Cache por commit
+
