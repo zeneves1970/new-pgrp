@@ -26,7 +26,13 @@ def save_seen_links(seen_links):
 
 # Função para obter os links das notícias
 def get_news_links(url):
-    response = requests.get(url, verify=False)  # Ignorando verificação SSL
+    try:
+        response = requests.get(url, verify=False)  # Ignorando verificação SSL
+        response.raise_for_status()  # Levanta uma exceção para códigos de erro HTTP
+    except requests.exceptions.RequestException as e:
+        print(f"Erro na requisição para a página principal: {e}")
+        return []
+    
     soup = BeautifulSoup(response.text, 'html.parser')
 
     # Encontrar as notícias dentro da <div class="box-news-home-title">
@@ -34,13 +40,20 @@ def get_news_links(url):
     
     if not news_section:
         print("Nenhuma seção de notícias encontrada.")
-    
+        return []
+
     # Retornar os links completos das notícias
     return [BASE_URL + item.find('a')['href'] for item in news_section if item.find('a')]
 
 # Função para obter o conteúdo da página de notícia
 def get_article_content(link):
-    response = requests.get(link, verify=False)  # Ignorando verificação SSL
+    try:
+        response = requests.get(link, verify=False)  # Ignorando verificação SSL
+        response.raise_for_status()  # Levanta uma exceção para códigos de erro HTTP
+    except requests.exceptions.RequestException as e:
+        print(f"Erro na requisição para o link da notícia: {e}")
+        return "Conteúdo não encontrado"
+    
     soup = BeautifulSoup(response.text, 'html.parser')
     
     # Encontrar o conteúdo da notícia dentro da <div class="news-detail">
