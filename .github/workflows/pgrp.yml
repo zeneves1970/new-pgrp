@@ -1,4 +1,4 @@
-nname: Monitor News
+name: Monitor News
 
 on:
   schedule:
