@@ -19,10 +19,10 @@ jobs:
         uses: actions/cache@v3
         with:
           path: seen_links.txt
-          key: monitor-pgrp-seen-links
+          key: monitor-pgrp-seen-links-${{ runner.os }}-${{ hashFiles('**/*.py') }}
 
       - name: Configurar Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v4  # Usando a versão mais recente
         with:
           python-version: 3.10
 
@@ -41,4 +41,4 @@ jobs:
         uses: actions/cache@v3
         with:
           path: seen_links.txt
-          key: monitor-pgrp-seen-links
+          key: monitor-pgrp-seen-links-${{ runner.os }}-${{ hashFiles('**/*.py') }}
