@@ -3,6 +3,7 @@ from bs4 import BeautifulSoup
 import smtplib
 import os
 import urllib3
+import time
 
 # Suprime avisos sobre SSL
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -77,7 +78,7 @@ Subject: {subject}
 """
     try:
         print(f"Enviando e-mail para {to_email}...")
-        with smtplib.SMTP("smtp.gmail.com", 587) as server:
+        with smtplib.SMTP("smtp.gmail.com", 587, timeout=10) as server:  # Timeout para o envio do e-mail
             server.starttls()
             server.login(from_email, from_password)
             server.sendmail(from_email, to_email, email_text.encode("utf-8"))
@@ -113,3 +114,4 @@ def monitor_news():
 
 if __name__ == "__main__":
     monitor_news()
+
