@@ -5,31 +5,57 @@ on:
     - cron: '*/15 * * * *'  # Executar a cada 15 minutos
 
 concurrency:
-  group: monitor-news  # Define um grupo para evitar execuções paralelas
-  cancel-in-progress: true  # Cancela o workflow anterior se um novo for disparado
+  group: monitor-news  # Evita execuções paralelas
+  cancel-in-progress: true  # Cancela a execução anterior se uma nova for disparada
 
 jobs:
   monitor_news:
     runs-on: ubuntu-latest
     steps:
+      # Passo 1: Fazer o checkout do repositório
       - name: Checkout do repositório
         uses: actions/checkout@v3
 
-
+      # Passo 2: Configurar Python
       - name: Configurar Python
-        uses: actions/setup-python@v4  # Usando a versão mais recente
+        uses: actions/setup-python@v4
         with:
-          python-version: 3.10
+          python-version: 3.10  # Garantir que a versão 3.10 está sendo usada
+          cache: 'pip'  # Ativar cache para dependências pip
 
+      # Passo 3: Confirmar versão do Python
+      - name: Confirmar versão do Python
+        run: python --version
+
+      # Passo 4: Instalar dependências
       - name: Instalar dependências
         run: |
           python -m pip install --upgrade pip
-          pip install requests beautifulsoup4
+          pip install -r requirements.txt  # Instalação das dependências a partir do requirements.txt
 
+      # Passo 5: Restaurar o cache do arquivo seen_links.txt
+      - name: Restaurar cache
+        uses: actions/cache@v3
+        with:
+          path: seen_links.txt  # Caminho do arquivo de cache
+          key: monitor-pgrp-seen-links-${{ runner.os }}  # Chave única para cache
+          restore-keys: |
+            monitor-pgrp-seen-links-${{ runner.os }}-
+            monitor-pgrp-seen-links-  # Chaves adicionais para restaurar caso a principal falhe
+
+      # Passo 6: Executar o monitor
       - name: Executar o monitor
         run: python monitor_pgrp.py
         env:
           EMAIL_USER: ${{ secrets.EMAIL_USER }}
           EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
+
+      # Passo 7: Atualizar o cache
+      - name: Atualizar cache
+        uses: actions/cache@v3
+        with:
+          path: seen_links.txt  # Caminho do arquivo a ser armazenado no cache
+          key: monitor-pgrp-seen-links-${{ runner.os }}  # Usar a mesma chave do cache
+
 
     
