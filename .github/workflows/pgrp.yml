@@ -47,21 +47,41 @@ jobs:
         uses: actions/cache@v3
         with:
           path: seen_links.txt  # Caminho do arquivo de cache
-          key: monitor-pgrp-seen-links-${{ runner.os }}  # Chave única para cache
+          key: monitor-pgrp-seen-links-${{ runner.os }}-${{ github.sha }}  # Chave única para cache (inclui sha do commit)
           restore-keys: |
             monitor-pgrp-seen-links-${{ runner.os }}-
             monitor-pgrp-seen-links-  # Chaves adicionais para restaurar caso a principal falhe
 
-      # Passo 7: Executar o monitor
+      # Passo 7: Verificar o conteúdo do arquivo seen_links.txt
+      - name: Verificar conteúdo de seen_links.txt antes de executar
+        run: |
+          if [ -f seen_links.txt ]; then
+            echo "Conteúdo de seen_links.txt:"
+            cat seen_links.txt
+          else
+            echo "seen_links.txt não existe ou está vazio."
+          fi
+
+      # Passo 8: Executar o monitor
       - name: Executar o monitor
         run: python monitor_pgrp.py
         env:
           EMAIL_USER: ${{ secrets.EMAIL_USER }}
           EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
 
-      # Passo 8: Atualizar o cache
+      # Passo 9: Verificar se o arquivo foi atualizado após a execução
+      - name: Verificar conteúdo de seen_links.txt após execução
+        run: |
+          if [ -f seen_links.txt ]; then
+            echo "Conteúdo de seen_links.txt após execução:"
+            cat seen_links.txt
+          else
+            echo "seen_links.txt não existe ou está vazio após a execução."
+          fi
+
+      # Passo 10: Atualizar o cache
       - name: Atualizar cache
         uses: actions/cache@v3
         with:
           path: seen_links.txt  # Caminho do arquivo a ser armazenado no cache
-          key: monitor-pgrp-seen-links-${{ runner.os }}  # Usar a mesma chave do cache
+          key: monitor-pgrp-seen-links-${{ runner.os }}-${{ github.sha }}  # Usar a mesma chave do cache
