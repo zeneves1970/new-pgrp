@@ -16,7 +16,7 @@ jobs:
       - name: Checkout do repositório
         uses: actions/checkout@v3
 
-      # Passo 2: Limpar o cache do Python
+      # Passo 2: Limpar cache do Python
       - name: Limpar cache de dependências
         run: |
           rm -rf ~/.cache/pip
@@ -26,7 +26,7 @@ jobs:
       - name: Configurar Python
         uses: actions/setup-python@v4
         with:
-          python-version: 3.10  # Garantir que a versão 3.10 está sendo usada
+          python-version: '3.10.x'  # Usando um formato de versão mais explícito
           cache: 'pip'  # Ativar cache para dependências pip
           clear: true  # Força a instalação sem cache
 
