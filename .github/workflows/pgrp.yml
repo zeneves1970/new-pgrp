@@ -28,7 +28,6 @@ jobs:
         with:
           python-version: '3.10.x'  # Usando um formato de versão mais explícito
           cache: 'pip'  # Ativar cache para dependências pip
-          clear: true  # Força a instalação sem cache
 
       # Passo 4: Confirmar versão do Python
       - name: Confirmar versão do Python
@@ -43,14 +42,14 @@ jobs:
           pip install -r requirements.txt  # Instalação das dependências a partir do requirements.txt
 
       # Passo 6: Restaurar o cache do arquivo seen_links.txt
-      - name: Restaurar cache
+      - name: Restaurar cache do arquivo seen_links.txt
         uses: actions/cache@v3
         with:
           path: seen_links.txt  # Caminho do arquivo de cache
-          key: monitor-pgrp-seen-links-${{ runner.os }}-${{ github.sha }}  # Usando o hash do commit para chave única
+          key: seen-links-${{ runner.os }}-v1  # Chave única para cache
           restore-keys: |
-            monitor-pgrp-seen-links-${{ runner.os }}-
-            monitor-pgrp-seen-links-  # Chaves adicionais para restaurar caso a principal falhe
+            seen-links-${{ runner.os }}-
+            seen-links-v1  # Chaves adicionais para restaurar caso a principal falhe
 
       # Passo 7: Executar o monitor
       - name: Executar o monitor
@@ -64,4 +63,4 @@ jobs:
         uses: actions/cache@v3
         with:
           path: seen_links.txt  # Caminho do arquivo a ser armazenado no cache
-          key: monitor-pgrp-seen-links-${{ runner.os }}-${{ github.sha }}  # Usando o hash do commit para chave única
+          key: seen-links-${{ runner.os }}-v1  # Usar a mesma chave do cache
