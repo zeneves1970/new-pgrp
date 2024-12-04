@@ -19,7 +19,9 @@ jobs:
         uses: actions/cache@v3
         with:
           path: seen_links.txt
-          key: monitor-pgrp-seen-links-${{ runner.os }}-${{ hashFiles('**/*.py') }}
+          key: monitor-pgrp-seen-links-${{ runner.os }}-${{ hashFiles('**/*.py') }}  # A chave agora depende de arquivos .py também
+          restore-keys: |
+            monitor-pgrp-seen-links-${{ runner.os }}-  # Permite uma busca mais ampla por caches anteriores
 
       - name: Configurar Python
         uses: actions/setup-python@v2  # Usando a versão 2.x, mais estável
