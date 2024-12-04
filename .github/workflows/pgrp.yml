@@ -3,7 +3,7 @@ name: Monitor News
 on:
   schedule:
     - cron: '*/15 * * * *'  # Executar a cada 15 minutos
-
+    
 concurrency:
   group: monitor-news  # Evita execuções paralelas
   cancel-in-progress: true  # Cancela a execução anterior se uma nova for disparada
