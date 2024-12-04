@@ -17,14 +17,14 @@ jobs:
         uses: actions/checkout@v3
 
       # Passo 2: Restaurar o cache para o arquivo seen_links.txt
-      - name: Restaurar cache
-        uses: actions/cache@v3
-        with:
-          path: seen_links.txt  # Caminho para o arquivo de cache
-          key: monitor-pgrp-seen-links-${{ runner.os }}  # Usar uma chave fixa para o cache
-          restore-keys: |
-            monitor-pgrp-seen-links-${{ runner.os }}-
-            monitor-pgrp-seen-links-  # Tentativas de restauração em caso de cache não encontrado
+      #- name: Restaurar cache
+      #  uses: actions/cache@v3
+      #  with:
+      #    path: seen_links.txt  # Caminho para o arquivo de cache
+      #    key: monitor-pgrp-seen-links-${{ runner.os }}  # Usar uma chave fixa para o cache
+      #    restore-keys: |
+      #      monitor-pgrp-seen-links-${{ runner.os }}-
+      #      monitor-pgrp-seen-links-  # Tentativas de restauração em caso de cache não encontrado
 
       # Passo 3: Configurar Python
       - name: Configurar Python
@@ -46,8 +46,8 @@ jobs:
           EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
 
       # Passo 6: Atualizar o cache
-      - name: Atualizar cache
-        uses: actions/cache@v3
-        with:
-          path: seen_links.txt  # Caminho para o arquivo que deve ser armazenado no cache
-          key: monitor-pgrp-seen-links-${{ runner.os }}  # Usar a mesma chave de cache
+      #- name: Atualizar cache
+      #  uses: actions/cache@v3
+      #  with:
+      #    path: seen_links.txt  # Caminho para o arquivo que deve ser armazenado no cache
+      #    key: monitor-pgrp-seen-links-${{ runner.os }}  # Usar a mesma chave de cache
