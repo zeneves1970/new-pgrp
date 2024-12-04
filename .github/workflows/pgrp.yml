@@ -15,11 +15,6 @@ jobs:
       - name: Checkout do repositório
         uses: actions/checkout@v3
 
-      - name: Restaurar cache
-        uses: actions/cache@v3
-        with:
-          path: seen_links.txt
-          key: monitor-pgrp-seen-links-${{ runner.os }}-${{ hashFiles('**/*.py') }}
 
       - name: Configurar Python
         uses: actions/setup-python@v4  # Usando a versão mais recente
@@ -37,8 +32,4 @@ jobs:
           EMAIL_USER: ${{ secrets.EMAIL_USER }}
           EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
 
-      - name: Atualizar cache
-        uses: actions/cache@v3
-        with:
-          path: seen_links.txt
-          key: monitor-pgrp-seen-links-${{ runner.os }}-${{ hashFiles('**/*.py') }}
+    
