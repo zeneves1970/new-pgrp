@@ -3,7 +3,7 @@ name: Monitor News
 on:
   schedule:
     - cron: '*/15 * * * *'  # Executar a cada 15 minutos
-    
+
 concurrency:
   group: monitor-news  # Evita execuções paralelas
   cancel-in-progress: true  # Cancela a execução anterior se uma nova for disparada
@@ -16,7 +16,7 @@ jobs:
       - name: Checkout do repositório
         uses: actions/checkout@v3
 
-      # Passo 2: Limpar cache do Python
+      # Passo 2: Limpar cache de dependências do Python
       - name: Limpar cache de dependências
         run: |
           rm -rf ~/.cache/pip
@@ -26,41 +26,51 @@ jobs:
       - name: Configurar Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.10.x'  # Usando um formato de versão mais explícito
-          cache: 'pip'  # Ativar cache para dependências pip
+          python-version: '3.10.x'  # Especificar versão do Python
+          cache: 'pip'  # Cache para dependências instaladas pelo pip
 
       # Passo 4: Confirmar versão do Python
       - name: Confirmar versão do Python
         run: |
-          python --version  # Confirma a versão do Python
-          which python  # Verifica o caminho do Python
+          python --version
+          which python
 
-      # Passo 5: Instalar dependências
+      # Passo 5: Instalar dependências do projeto
       - name: Instalar dependências
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt  # Instalação das dependências a partir do requirements.txt
+          pip install -r requirements.txt
 
-      # Passo 6: Restaurar o cache do arquivo seen_links.txt
-      - name: Restaurar cache do arquivo seen_links.txt
+      # Passo 6: Restaurar cache do arquivo seen_links.txt
+      - name: Restaurar cache
         uses: actions/cache@v3
         with:
-          path: seen_links.txt  # Caminho do arquivo de cache
-          key: seen-links-${{ runner.os }}-v1  # Chave única para cache
+          path: seen_links.txt  # Caminho do arquivo que contém os links vistos
+          key: seen-links-${{ runner.os }}-v1  # Chave única para o cache
           restore-keys: |
             seen-links-${{ runner.os }}-
-            seen-links-v1  # Chaves adicionais para restaurar caso a principal falhe
+            seen-links-
 
-      # Passo 7: Executar o monitor
+      # Passo 7: Executar o script de monitoramento
       - name: Executar o monitor
         run: python monitor_pgrp.py
         env:
-          EMAIL_USER: ${{ secrets.EMAIL_USER }}
-          EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
+          EMAIL_USER: ${{ secrets.EMAIL_USER }}  # Variável de ambiente com usuário do e-mail
+          EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}  # Variável de ambiente com senha do e-mail
 
-      # Passo 8: Atualizar cache
+      # Passo 8: Verificar alterações no arquivo seen_links.txt antes de salvar no cache
+      - name: Verificar alterações no arquivo seen_links.txt
+        id: file-check
+        run: |
+          if [ -f cache/seen_links.txt ]; then
+            cmp -s seen_links.txt cache/seen_links.txt && echo "Cache está atualizado" && exit 0
+          fi
+          echo "Cache será atualizado"
+
+      # Passo 9: Atualizar cache (se necessário)
       - name: Atualizar cache
+        if: steps.file-check.outcome == 'success'
         uses: actions/cache@v3
         with:
-          path: seen_links.txt  # Caminho do arquivo a ser armazenado no cache
-          key: seen-links-${{ runner.os }}-v1  # Usar a mesma chave do cache
+          path: seen_links.txt
+          key: seen-links-${{ runner.os }}-v1
