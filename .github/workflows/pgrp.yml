@@ -20,44 +20,62 @@ jobs:
       - name: Configurar Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.10.x'
-          cache: 'pip'
+          python-version: '3.10.x'  # Usando um formato de versão explícito
+          cache: 'pip'  # Ativar cache para dependências pip
 
-      # Passo 3: Instalar dependências
+      # Passo 3: Confirmar versão do Python
+      - name: Confirmar versão do Python
+        run: |
+          python --version  # Confirma a versão do Python
+          which python  # Verifica o caminho do Python
+
+      # Passo 4: Instalar dependências
       - name: Instalar dependências
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
+          pip install -r requirements.txt  # Instalação das dependências a partir do requirements.txt
 
-      # Passo 4: Restaurar cache do arquivo seen_links.txt
-      - name: Restaurar cache
+      # Passo 5: Restaurar cache do arquivo seen_links.txt
+      - name: Restaurar cache do seen_links.txt
         uses: actions/cache@v3
         with:
           path: seen_links.txt
-          key: seen-links-${{ runner.os }}-v1
+          key: monitor-seen-links-${{ runner.os }}
           restore-keys: |
-            seen-links-${{ runner.os }}-
-            seen-links-
+            monitor-seen-links-${{ runner.os }}-
 
-      # Passo 5: Criar arquivo seen_links.txt, se não existir
-      - name: Garantir existência do arquivo seen_links.txt
+      # Passo 6: Verificar conteúdo do arquivo antes de rodar o script
+      - name: Verificar conteúdo do seen_links.txt (antes)
         run: |
-          if [ ! -f seen_links.txt ]; then
-            touch seen_links.txt
-            echo "Arquivo 'seen_links.txt' criado vazio."
+          if [ -f seen_links.txt ]; then
+            echo "Conteúdo de seen_links.txt antes da execução:"
+            cat seen_links.txt
+          else
+            echo "Arquivo seen_links.txt não encontrado."
           fi
-        shell: bash
 
-      # Passo 6: Executar o script de monitoramento
+      # Passo 7: Executar o script de monitoramento
       - name: Executar o monitor
         run: python monitor_pgrp.py
         env:
           EMAIL_USER: ${{ secrets.EMAIL_USER }}
           EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
 
-      # Passo 7: Atualizar cache do arquivo seen_links.txt
-      - name: Atualizar cache
+      # Passo 8: Verificar conteúdo do arquivo após o script
+      - name: Verificar conteúdo do seen_links.txt (depois)
+        run: |
+          if [ -f seen_links.txt ]; then
+            echo "Conteúdo de seen_links.txt após a execução:"
+            cat seen_links.txt
+          else
+            echo "Arquivo seen_links.txt não encontrado."
+          fi
+
+      # Passo 9: Atualizar o cache
+      - name: Atualizar cache do seen_links.txt
+        if: success()
         uses: actions/cache@v3
         with:
           path: seen_links.txt
-          key: seen-links-${{ runner.os }}-v1
+          key: monitor-seen-links-${{ runner.os }}
+
