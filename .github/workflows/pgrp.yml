@@ -10,7 +10,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # Configura o cache para armazenar o arquivo seen_links.txt
+      # 1. Checkout do código
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      # 2. Restaurar o cache para o arquivo seen_links.txt
       - name: Restore cache
         uses: actions/cache@v3
         with:
@@ -20,23 +24,20 @@ jobs:
           restore-keys: |
             monitor-seen-links-
 
-      # Checkout do código
-      - name: Checkout
-        uses: actions/checkout@v3
-
-      # Instalar dependências
+      # 3. Instalar dependências
       - name: Instalar dependências
         run: pip install -r requirements.txt
 
-      # Executar o monitor (seu script)
+      # 4. Executar o monitor (seu script)
       - name: Executar monitor
         run: python monitor_pgrp.py
 
-      # Salvar o cache atualizado após execução do script
+      # 5. Salvar o cache atualizado após execução do script
       - name: Save updated cache
         uses: actions/cache@v3
         with:
           path: |
             seen_links.txt
           key: monitor-seen-links-${{ runner.os }}
+
 
