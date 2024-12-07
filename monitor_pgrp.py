@@ -27,12 +27,19 @@ def load_seen_links():
 # Função para salvar os links vistos em um arquivo
 def save_seen_links(seen_links):
     if seen_links:
+        # Extrai os números do final dos links e ordena em ordem decrescente
+        sorted_links = sorted(
+            seen_links,
+            key=lambda x: int(x.split('=')[-1]),  # Obtém o número após "newsItemId="
+            reverse=True  # Ordem decrescente
+        )
         with open(SEEN_LINKS_FILE, "w") as file:
-            for link in seen_links:
+            for link in sorted_links:
                 file.write(f"{link}\n")
-            print(f"Links salvos no arquivo: {seen_links}")  # Log para verificar o que foi salvo
+            print(f"Links salvos no arquivo: {sorted_links}")  # Log para verificar o que foi salvo
     else:
         print("Nenhum link para salvar.")  # Garantindo que se não houver links, nada seja salvo
+
 
 # Função para obter os links das notícias
 def get_news_links(url):
