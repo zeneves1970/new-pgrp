@@ -17,7 +17,7 @@ def load_seen_links():
     if os.path.exists(SEEN_LINKS_FILE) and os.path.getsize(SEEN_LINKS_FILE) > 0:
         with open(SEEN_LINKS_FILE, "r") as file:
             links = {link.strip() for link in file.readlines() if link.strip()}
-            print(f"Links carregados: {links}")  # Adicionando log para verificar os links carregados
+            print(f"Links carregados do arquivo: {links}")  # Log para verificar os links carregados
             return links
     else:
         print("Arquivo 'seen_links.txt' não encontrado ou vazio. Criando novo arquivo.")
@@ -27,7 +27,7 @@ def load_seen_links():
 # Função para salvar os links vistos em um arquivo
 def save_seen_links(seen_links):
     if seen_links:
-        # Extrai os números do final dos links e ordena em ordem decrescente
+        # Ordenar os links por número em ordem decrescente
         sorted_links = sorted(
             seen_links,
             key=lambda x: int(x.split('=')[-1]),  # Obtém o número após "newsItemId="
@@ -62,6 +62,7 @@ def get_news_links(url):
     # Retornar os links completos das notícias
     return [BASE_URL + item.find('a')['href'] for item in news_section if item.find('a')]
 
+
 # Função para obter o conteúdo da página de notícia
 def get_article_content(link):
     try:
@@ -81,6 +82,7 @@ def get_article_content(link):
         return "Conteúdo não encontrado"
     
     return body.text.strip()
+
 
 # Função para enviar uma notificação por e-mail
 def send_email_notification(article_content):
@@ -104,6 +106,7 @@ Subject: {subject}
     except Exception as e:
         print("Erro ao enviar e-mail:", e)
 
+
 # Função principal para monitorar mudanças
 def monitor_news():
     seen_links = load_seen_links()  # Carrega links já vistos do arquivo
@@ -113,21 +116,28 @@ def monitor_news():
         print("Nenhum link encontrado na página.")
         return
 
-    new_links = set(current_links) - seen_links  # Identifica novos links
+    # Identifica novos links
+    new_links = [link for link in current_links if link not in seen_links]
     if new_links:
-        # Pega o primeiro novo link
-        new_link = next(iter(new_links))
-        print(f"Nova notícia detectada: {new_link}")
-        
-        # Obter o conteúdo da notícia
-        article_content = get_article_content(new_link)  # Obtém o conteúdo da notícia
-        send_email_notification(article_content)  # Envia notificação por e-mail
-        
-        # Atualiza os links vistos
+        # Ordenar os novos links por ordem decrescente de número
+        new_links = sorted(
+            new_links,
+            key=lambda x: int(x.split('=')[-1]),
+            reverse=True
+        )
+        # Envia email apenas para os novos links detectados
+        for new_link in new_links:
+            print(f"Nova notícia detectada: {new_link}")
+            article_content = get_article_content(new_link)  # Obtém o conteúdo da notícia
+            send_email_notification(article_content)  # Envia notificação por e-mail
+
+        # Atualiza a lista de links vistos
         seen_links.update(new_links)  # Atualiza os links vistos
-        save_seen_links(seen_links)  # Salva os links vistos no arquivo
+        save_seen_links(seen_links)  # Salva os links no arquivo
     else:
         print("Nenhuma nova notícia encontrada.")
 
+
+# Execução principal
 if __name__ == "__main__":
     monitor_news()
