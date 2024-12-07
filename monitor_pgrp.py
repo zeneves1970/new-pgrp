@@ -27,19 +27,21 @@ def load_seen_links():
 
 # Função para salvar os links no arquivo sem interferência de cache
 def save_seen_links(seen_links):
-    try:
-        # Ordenar os links por número, em ordem decrescente
+    if seen_links:
         sorted_links = sorted(
             seen_links,
             key=lambda x: int(x.split('=')[-1]),
             reverse=True
         )
-        with open(SEEN_LINKS_FILE, "w") as file:
-            for link in sorted_links:
-                file.write(f"{link}\n")
-        print(f"Links salvos no arquivo: {sorted_links}")
-    except Exception as e:
-        print(f"Erro ao salvar links no arquivo: {e}")
+        try:
+            with open(SEEN_LINKS_FILE, "w") as file:
+                for link in sorted_links:
+                    file.write(f"{link}\n")
+                print(f"Links salvos no arquivo: {sorted_links}")
+        except Exception as e:
+            print(f"Erro ao salvar links no arquivo: {e}")
+    else:
+        print("Nenhum link para salvar.")
 
 
 # Função para obter os links das notícias
