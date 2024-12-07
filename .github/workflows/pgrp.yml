@@ -36,13 +36,13 @@ jobs:
           pip install -r requirements.txt  # Instalação das dependências a partir do requirements.txt
 
       # Passo 5: Restaurar cache do arquivo seen_links.txt
-      #- name: Restaurar cache do seen_links.txt
-      #  uses: actions/cache@v3
-      #  with:
-      #    path: seen_links.txt
-      #    key: monitor-seen-links-${{ runner.os }}
-      #    restore-keys: |
-      #      monitor-seen-links-${{ runner.os }}-
+      - name: Restaurar cache do seen_links.txt
+        uses: actions/cache@v3
+        with:
+          path: seen_links.txt
+          key: monitor-seen-links-${{ runner.os }}
+          restore-keys: |
+            monitor-seen-links-${{ runner.os }}-
 
       # Passo 6: Verificar conteúdo do arquivo antes de rodar o script
       - name: Verificar conteúdo do seen_links.txt (antes)
@@ -72,10 +72,10 @@ jobs:
           fi
 
       # Passo 9: Atualizar o cache
-      #- name: Atualizar cache do seen_links.txt
-      #  if: success()
-      #  uses: actions/cache@v3
-      #  with:
-      #    path: seen_links.txt
+      - name: Atualizar cache do seen_links.txt
+        if: success()
+        uses: actions/cache@v3
+        with:
+          path: seen_links.txt
       #    key: monitor-seen-links-${{ runner.os }}
 
