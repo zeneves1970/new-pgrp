@@ -28,6 +28,17 @@ jobs:
       - name: Instalar dependências
         run: pip install -r requirements.txt
 
+        # Garantir arquivo seen_links.txt
+      - name: Garantir arquivo seen_links.txt
+        run: |
+          if [ ! -f seen_links.txt ]; then
+            touch seen_links.txt
+          fi
+
+      # Executar o monitor
+      - name: Executar monitor
+        run: python monitor_pgrp.py
+
       # 4. Executar o monitor (seu script)
       - name: Executar monitor
         run: python monitor_pgrp.py
