@@ -22,6 +22,20 @@ jobs:
           python -m pip install --upgrade pip
           pip install requests beautifulsoup4
 
+      - name: List Files in Directory
+        run: ls -la
+        # Exibe os arquivos presentes no ambiente do GitHub
+
+      - name: Debug Script Content
+        run: cat monitor_pgrp.py
+        # Mostra o conteúdo do script para identificar problemas
+
+      - name: Check Environment Variables
+        run: |
+          echo "EMAIL_USER=${{ secrets.EMAIL_USER }}"
+          echo "TO_EMAIL=${{ secrets.TO_EMAIL }}"
+        # Verifica se as variáveis estão configuradas (as senhas são ocultas por padrão)
+
       - name: Run the Script
         env:
           EMAIL_USER: ${{ secrets.EMAIL_USER }}
@@ -29,4 +43,3 @@ jobs:
           TO_EMAIL: ${{ secrets.TO_EMAIL }}
         run: |
           python monitor_pgrp.py
-
