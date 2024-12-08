@@ -36,10 +36,19 @@ jobs:
       # 5. Depurar conteúdo do script
       - name: Debug Script Content
         run: |
-          echo "Exibindo o conteúdo do script monitor_pgrp.py:"
-          cat monitor_pgrp.py
+          echo "Exibindo o conteúdo do script pgrp.py:"
+          cat pgrp.py
           echo "Testando importação do script como módulo:"
-          python -c "import monitor_pgrp; print('Script carregado com sucesso')"
+          python -c "import pgrp; print('Script carregado com sucesso')"
+
+      # 6. Executar o script
+      - name: Run the Script
+        env:
+          EMAIL_USER: ${{ secrets.EMAIL_USER }}
+          EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
+          TO_EMAIL: ${{ secrets.TO_EMAIL }}
+        run: |
+          python pgrp.py
 
 
      
