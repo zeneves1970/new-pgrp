@@ -7,6 +7,11 @@ import urllib3
 # Suprime avisos sobre SSL
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
+# Configurações do e-mail a partir de variáveis de ambiente
+EMAIL_USER = os.getenv("EMAIL_USER")
+EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD")
+TO_EMAIL = os.getenv("TO_EMAIL")
+
 # URL da página a ser monitorada
 BASE_URL = "https://www.pgdporto.pt/proc-web/"
 URL = f"{BASE_URL}"  # Página principal
@@ -44,44 +49,25 @@ def save_seen_links(seen_links):
         print("Nenhum link para salvar.")
 
 
-# Função para obter os links das notícias
-def get_news_links(url):
-    try:
-        response = requests.get(url, verify=False)
-        response.raise_for_status()
-    except requests.exceptions.RequestException as e:
-        print(f"Erro ao acessar a página: {e}")
-        return []
-    
-    soup = BeautifulSoup(response.text, 'html.parser')
-    news_section = soup.find_all('div', class_='box-news-home-title')
-
-    if not news_section:
-        print("Nenhuma seção de notícias encontrada.")
-        return []
-
-    return [BASE_URL + item.find('a')['href'] for item in news_section if item.find('a')]
-
-
- # Função para enviar uma notificação por e-mail
+# Função para enviar uma notificação por e-mail
 def send_email_notification(article_content):
-    from_email = os.getenv("EMAIL_USER")  # Acessando o secret EMAIL_USER
-    from_password = os.getenv("EMAIL_PASSWORD")  # Acessando o secret EMAIL_PASSWORD
-    to_email = "jneves@lusa.pt"  # Destinatário
     subject = "Nova notícia detectada!"
 
-    email_text = f"""From: {from_email}
-To: {to_email}
+    email_text = f"""\
+From: {EMAIL_USER}
+To: {TO_EMAIL}
 Subject: {subject}
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 8bit
 
 {article_content}
 """
     try:
         with smtplib.SMTP("smtp.gmail.com", 587) as server:
             server.starttls()
-            server.login(from_email, from_password)
-            server.sendmail(from_email, to_email, email_text.encode("utf-8"))
-        print(f"Email enviado com sucesso.")
+            server.login(EMAIL_USER, EMAIL_PASSWORD)
+            server.sendmail(EMAIL_USER, TO_EMAIL, email_text.encode("utf-8"))
+        print("E-mail enviado com sucesso.")
     except Exception as e:
         print("Erro ao enviar e-mail:", e)
 
@@ -111,24 +97,10 @@ def monitor_news():
 
         # Atualiza a lista de links vistos e grava no arquivo
         seen_links.update(new_links)
-        save_seen_links(seen_links)  # Salva no arquivo sem cache
+        save_seen_links(seen_links)
 
     else:
         print("Nenhuma nova notícia encontrada.")
-
-
-# Função para buscar conteúdo da notícia
-def get_article_content(link):
-    try:
-        response = requests.get(link, verify=False)
-        response.raise_for_status()
-    except requests.exceptions.RequestException as e:
-        print(f"Erro ao acessar a notícia: {e}")
-        return "Conteúdo não disponível"
-
-    soup = BeautifulSoup(response.text, 'html.parser')
-    body = soup.find('div', class_='news-detail')
-    return body.text.strip() if body else "Conteúdo não encontrado"
 
 
 # Execução principal
