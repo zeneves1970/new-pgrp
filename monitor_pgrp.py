@@ -72,6 +72,34 @@ Content-Transfer-Encoding: 8bit
         print("Erro ao enviar e-mail:", e)
 
 
+# Função para buscar links de notícias da URL fornecida
+def get_news_links(url):
+    """
+    Função para buscar links de notícias da URL fornecida.
+    Retorna uma lista com os links encontrados.
+    """
+    try:
+        response = requests.get(url, verify=False)  # Ignora SSL
+        if response.status_code != 200:
+            print(f"Erro ao acessar a página: {response.status_code}")
+            return []
+        
+        # Parse da resposta com BeautifulSoup
+        soup = BeautifulSoup(response.content, 'html.parser')
+        links = set()
+        
+        # Ajuste conforme a estrutura da sua página
+        for a_tag in soup.find_all("a", href=True):
+            if "news" in a_tag['href']:  # Filtragem básica, ajuste conforme necessário
+                links.add(a_tag['href'])
+        
+        print(f"Links encontrados: {links}")
+        return links
+    except Exception as e:
+        print(f"Erro ao buscar links: {e}")
+        return set()
+
+
 # Função principal para monitorar mudanças
 def monitor_news():
     seen_links = load_seen_links()  # Carrega os links vistos
@@ -91,7 +119,7 @@ def monitor_news():
         for new_link in new_links:
             print(f"Detectando nova notícia: {new_link}")
             try:
-                send_email_notification(get_article_content(new_link))
+                send_email_notification(new_link)
             except Exception as e:
                 print(f"Erro ao enviar email para {new_link}: {e}")
 
@@ -106,3 +134,4 @@ def monitor_news():
 # Execução principal
 if __name__ == "__main__":
     monitor_news()
+
