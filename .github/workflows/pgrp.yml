@@ -9,33 +9,39 @@ jobs:
   monitor:
     runs-on: ubuntu-latest
     steps:
+      # 1. Clonar o repositório
       - name: Checkout Repository
         uses: actions/checkout@v3
 
+      # 2. Configurar Python
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.x'
 
+      # 3. Instalar dependências
       - name: Install Dependencies
         run: |
           python -m pip install --upgrade pip
           pip install requests beautifulsoup4
 
-      - name: List Files in Directory
-        run: ls -la
-        # Exibe os arquivos presentes no ambiente do GitHub
-
-      - name: Debug Script Content
-        run: cat monitor_pgrp.py
-        # Mostra o conteúdo do script para identificar problemas
-
-      - name: Check Environment Variables
+      # 4. Garantir que o arquivo seen_links.txt existe
+      - name: Ensure seen_links.txt Exists
         run: |
-          echo "EMAIL_USER=${{ secrets.EMAIL_USER }}"
-          echo "TO_EMAIL=${{ secrets.TO_EMAIL }}"
-        # Verifica se as variáveis estão configuradas (as senhas são ocultas por padrão)
+          if [ ! -f seen_links.txt ]; then
+            echo "Criando arquivo seen_links.txt vazio"
+            touch seen_links.txt
+          fi
 
+      # 5. Depurar conteúdo do script
+      - name: Debug Script Content
+        run: |
+          echo "Exibindo o conteúdo do script monitor_pgrp.py:"
+          cat monitor_pgrp.py
+          echo "Testando importação do script como módulo:"
+          python -c "import monitor_pgrp; print('Script carregado com sucesso')"
+
+      # 6. Executar o script
       - name: Run the Script
         env:
           EMAIL_USER: ${{ secrets.EMAIL_USER }}
@@ -43,3 +49,4 @@ jobs:
           TO_EMAIL: ${{ secrets.TO_EMAIL }}
         run: |
           python monitor_pgrp.py
+
