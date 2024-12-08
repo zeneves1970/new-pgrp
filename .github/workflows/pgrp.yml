@@ -10,41 +10,26 @@ on:
     - cron: "*/5 * * * *"
     
 jobs:
-  check-links:
+  process:
     runs-on: ubuntu-latest
 
     steps:
-    # Passo 1: Fazer o checkout do código do repositório
-    - name: Checkout code
-      uses: actions/checkout@v3
+    - name: Checkout Repository
+      uses: actions/checkout@v2
 
-    # Passo 2: Restaurar o cache para o arquivo seen_links.txt
-    - name: Restore cache for seen_links.txt
-      uses: actions/cache@v3
-      with:
-        path: seen_links.txt  # Arquivo que queremos persistir
-        key: seen-links-cache
-
-    # Passo 3: Configurar o Python no ambiente
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: 3.9  # Use a versão que preferir
-
-    # Passo 4: Instalar as dependências do script
-    - name: Install dependencies
-      run: |
-        pip install -r requirements.txt
-
-    # Passo 5: Executar o script Python
-    - name: Run Python script
-      run: python pgrp.py  # Substitua pelo nome do seu script
-
-    # Passo 6: Atualizar o cache após execução
-    - name: Update cache for seen_links.txt
-      uses: actions/cache@v3
+    - name: Cache seen_links.txt
+      uses: actions/cache@v2
       with:
         path: seen_links.txt
-        key: seen-links-cache
-     
+        key: ${{ runner.os }}-seen-links-cache-${{ github.sha }}
+        restore-keys: |
+          ${{ runner.os }}-seen-links-cache-
 
+    - name: Run Script
+      run: python3 pgrp.py
+
+    - name: Save cache if necessary
+      run: |
+        echo "Saving seen_links.txt to cache."
+        cp seen_links.txt ${{ runner.temp }}/seen_links.txt
+    
