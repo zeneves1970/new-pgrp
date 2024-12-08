@@ -28,5 +28,5 @@ jobs:
           EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
           TO_EMAIL: ${{ secrets.TO_EMAIL }}
         run: |
-          python monitor-pgrp.py
+          python monitor_pgrp.py
 
