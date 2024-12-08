@@ -76,7 +76,7 @@ Content-Transfer-Encoding: 8bit
 def get_news_links(url):
     """
     Função para buscar links de notícias da URL fornecida.
-    Retorna uma lista com os links encontrados.
+    Retorna uma lista com os links completos encontrados.
     """
     try:
         response = requests.get(url, verify=False)  # Ignora SSL
@@ -88,10 +88,11 @@ def get_news_links(url):
         soup = BeautifulSoup(response.content, 'html.parser')
         links = set()
         
-        # Ajuste conforme a estrutura da sua página
+        # Ajuste para criar a URL completa
         for a_tag in soup.find_all("a", href=True):
-            if "news" in a_tag['href']:  # Filtragem básica, ajuste conforme necessário
-                links.add(a_tag['href'])
+            if "news.jsf" in a_tag['href']:  # Apenas links de notícias relevantes
+                full_link = f"https://www.pgdporto.pt/proc-web/{a_tag['href']}"  # Monta a URL completa
+                links.add(full_link)
         
         print(f"Links encontrados: {links}")
         return links
