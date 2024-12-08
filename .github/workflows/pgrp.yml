@@ -1,47 +1,50 @@
-name: Monitor News
+name: Send Emails on New Links
 
 on:
+  # Executa o script em push para a branch principal
+  push:
+    branches:
+      - main
+  # Agendado para rodar a cada 5 minutos
   schedule:
-    - cron: "*/5 * * * *"  # Executa a cada 5 minutos
-  workflow_dispatch:
-
+    - cron: "*/5 * * * *"
+    
 jobs:
-  monitor:
+  check-links:
     runs-on: ubuntu-latest
+
     steps:
-      # 1. Clonar o repositório
-      - name: Checkout Repository
-        uses: actions/checkout@v3
+    # Passo 1: Fazer o checkout do código do repositório
+    - name: Checkout code
+      uses: actions/checkout@v3
 
-      # 2. Configurar Python
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.x'
+    # Passo 2: Restaurar o cache para o arquivo seen_links.txt
+    - name: Restore cache for seen_links.txt
+      uses: actions/cache@v3
+      with:
+        path: seen_links.txt  # Arquivo que queremos persistir
+        key: seen-links-cache
 
-      # 3. Instalar dependências
-      - name: Install Dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install requests beautifulsoup4
+    # Passo 3: Configurar o Python no ambiente
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: 3.9  # Use a versão que preferir
 
-      # 4. Garantir que o arquivo seen_links.txt existe
-      - name: Ensure seen_links.txt Exists
-        run: |
-          if [ ! -f seen_links.txt ]; then
-            echo "Criando arquivo seen_links.txt vazio"
-            touch seen_links.txt
-          fi
+    # Passo 4: Instalar as dependências do script
+    - name: Install dependencies
+      run: |
+        pip install -r requirements.txt
 
-      # 6. Executar o script
-      - name: Run the Script
-        env:
-          EMAIL_USER: ${{ secrets.EMAIL_USER }}
-          EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
-          TO_EMAIL: ${{ secrets.TO_EMAIL }}
-        run: |
-          python pgrp.py
+    # Passo 5: Executar o script Python
+    - name: Run Python script
+      run: python your_script.py  # Substitua pelo nome do seu script
 
-
+    # Passo 6: Atualizar o cache após execução
+    - name: Update cache for seen_links.txt
+      uses: actions/cache@v3
+      with:
+        path: seen_links.txt
+        key: seen-links-cache
      
 
