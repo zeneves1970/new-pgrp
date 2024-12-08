@@ -100,6 +100,28 @@ def get_news_links(url):
         return set()
 
 
+# Função para buscar o conteúdo da notícia
+def get_article_content(url):
+    """
+    Busca e extrai o conteúdo principal de uma notícia.
+    """
+    try:
+        response = requests.get(url, verify=False)
+        if response.status_code != 200:
+            print(f"Erro ao acessar a notícia: {response.status_code}")
+            return "Erro ao acessar a notícia."
+
+        soup = BeautifulSoup(response.content, 'html.parser')
+        paragraphs = soup.find_all("p")
+        article_content = " ".join([p.get_text() for p in paragraphs])
+        
+        print(f"Conteúdo da notícia: {article_content}")
+        return article_content
+    except Exception as e:
+        print(f"Erro ao processar a notícia: {e}")
+        return "Erro ao processar a notícia."
+
+
 # Função principal para monitorar mudanças
 def monitor_news():
     seen_links = load_seen_links()  # Carrega os links vistos
@@ -134,4 +156,3 @@ def monitor_news():
 # Execução principal
 if __name__ == "__main__":
     monitor_news()
-
