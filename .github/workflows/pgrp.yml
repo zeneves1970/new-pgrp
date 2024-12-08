@@ -6,47 +6,27 @@ on:
   workflow_dispatch:
 
 jobs:
-  monitor-news:
+  monitor:
     runs-on: ubuntu-latest
-
     steps:
-      # 1. Checkout do código
-      - name: Checkout
+      - name: Checkout Repository
         uses: actions/checkout@v3
 
-      # 2. Restaurar o cache para o arquivo seen_links.txt
-      - name: Restore cache
-        uses: actions/cache@v3
+      - name: Set up Python
+        uses: actions/setup-python@v4
         with:
-          path: |
-            seen_links.txt
-          key: monitor-seen-links-${{ runner.os }}
-          restore-keys: |
-            monitor-seen-links-
+          python-version: '3.x'
 
-      # 3. Instalar dependências
-      - name: Instalar dependências
-        run: pip install -r requirements.txt
-
-        # Garantir arquivo seen_links.txt
-      - name: Garantir arquivo seen_links.txt
+      - name: Install Dependencies
         run: |
-          if [ ! -f seen_links.txt ]; then
-            touch seen_links.txt
-          fi
+          python -m pip install --upgrade pip
+          pip install requests beautifulsoup4
 
-      # Executar o monitor
-      - name: Executar monitor
-        run: python monitor_pgrp.py
+      - name: Run the Script
+        env:
+          EMAIL_USER: ${{ secrets.EMAIL_USER }}
+          EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
+          TO_EMAIL: ${{ secrets.TO_EMAIL }}
+        run: |
+          python script.py
 
-      # 4. Executar o monitor (seu script)
-      - name: Executar monitor
-        run: python monitor_pgrp.py
-
-      # 5. Salvar o cache atualizado após execução do script
-      - name: Save updated cache
-        uses: actions/cache@v3
-        with:
-          path: |
-            seen_links.txt
-          key: monitor-seen-links-${{ runner.os }}-${{ hashFiles('seen_links.txt') }}
