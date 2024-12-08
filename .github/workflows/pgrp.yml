@@ -38,7 +38,7 @@ jobs:
 
     # Passo 5: Executar o script Python
     - name: Run Python script
-      run: python your_script.py  # Substitua pelo nome do seu script
+      run: python pgrp.py  # Substitua pelo nome do seu script
 
     # Passo 6: Atualizar o cache após execução
     - name: Update cache for seen_links.txt
