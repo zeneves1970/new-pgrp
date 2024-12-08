@@ -33,8 +33,10 @@ def load_seen_links():
 # Função para salvar os links no arquivo sem interferência de cache
 def save_seen_links(seen_links):
     if seen_links:
+        # Filtrar apenas os links válidos que contêm números
+        valid_links = [link for link in seen_links if '=' in link and link.split('=')[-1].isdigit()]
         sorted_links = sorted(
-            seen_links,
+            valid_links,
             key=lambda x: int(x.split('=')[-1]),
             reverse=True
         )
@@ -72,40 +74,12 @@ Content-Transfer-Encoding: 8bit
         print("Erro ao enviar e-mail:", e)
 
 
-# Função para buscar links de notícias da URL fornecida
-def get_news_links(url):
-    """
-    Função para buscar links de notícias da URL fornecida.
-    Retorna uma lista com os links encontrados.
-    """
-    try:
-        response = requests.get(url, verify=False)  # Ignora SSL
-        if response.status_code != 200:
-            print(f"Erro ao acessar a página: {response.status_code}")
-            return []
-        
-        # Parse da resposta com BeautifulSoup
-        soup = BeautifulSoup(response.content, 'html.parser')
-        links = set()
-        
-        # Ajuste conforme a estrutura da sua página
-        for a_tag in soup.find_all("a", href=True):
-            if "news" in a_tag['href']:  # Filtragem básica, ajuste conforme necessário
-                links.add(a_tag['href'])
-        
-        print(f"Links encontrados: {links}")
-        return links
-    except Exception as e:
-        print(f"Erro ao buscar links: {e}")
-        return set()
-
-
-# Função para buscar o conteúdo da notícia
+# Corrigir URLs inválidas no conteúdo
 def get_article_content(url):
-    """
-    Busca e extrai o conteúdo principal de uma notícia.
-    """
     try:
+        if not url.startswith("http"):
+            url = f"https://www.pgdporto.pt/{url}"
+        
         response = requests.get(url, verify=False)
         if response.status_code != 200:
             print(f"Erro ao acessar a notícia: {response.status_code}")
@@ -113,46 +87,7 @@ def get_article_content(url):
 
         soup = BeautifulSoup(response.content, 'html.parser')
         paragraphs = soup.find_all("p")
-        article_content = " ".join([p.get_text() for p in paragraphs])
-        
-        print(f"Conteúdo da notícia: {article_content}")
-        return article_content
+        return " ".join([p.get_text() for p in paragraphs])
     except Exception as e:
         print(f"Erro ao processar a notícia: {e}")
         return "Erro ao processar a notícia."
-
-
-# Função principal para monitorar mudanças
-def monitor_news():
-    seen_links = load_seen_links()  # Carrega os links vistos
-    current_links = get_news_links(URL)  # Busca links da página
-
-    if not current_links:
-        print("Nenhum link encontrado na página.")
-        return
-
-    # Encontra novos links
-    new_links = {link for link in current_links if link not in seen_links}
-
-    if new_links:
-        print(f"Novos links encontrados: {new_links}")
-        
-        # Processa e envia notificações por e-mail
-        for new_link in new_links:
-            print(f"Detectando nova notícia: {new_link}")
-            try:
-                send_email_notification(get_article_content(new_link))
-            except Exception as e:
-                print(f"Erro ao enviar email para {new_link}: {e}")
-
-        # Atualiza a lista de links vistos e grava no arquivo
-        seen_links.update(new_links)
-        save_seen_links(seen_links)
-
-    else:
-        print("Nenhuma nova notícia encontrada.")
-
-
-# Execução principal
-if __name__ == "__main__":
-    monitor_news()
