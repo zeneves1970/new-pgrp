@@ -7,10 +7,10 @@ import urllib3
 # Suprime avisos sobre SSL
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-# Configurações do e-mail a partir de variáveis de ambiente
-EMAIL_USER = os.getenv("EMAIL_USER")
-EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD")
-TO_EMAIL = os.getenv("TO_EMAIL")
+# Configurações do e-mail
+EMAIL_USER = "zeneves1970@gmail.com"  # Substitua pelo seu e-mail
+EMAIL_PASSWORD = "qcep rnqc njbz rpea"  # Substitua pela sua senha ou App Password
+TO_EMAIL = "jneves@lusa.pt"  # Substitua pelo e-mail do destinatário
 
 # URL da página a ser monitorada
 BASE_URL = "https://www.pgdporto.pt/proc-web/"
@@ -101,11 +101,10 @@ def get_news_links(url):
         return set()
 
 
-# Função para buscar o conteúdo da notícia
+from bs4 import BeautifulSoup
+import requests
+
 def get_article_content(url):
-    """
-    Busca e extrai o conteúdo principal de uma notícia.
-    """
     try:
         response = requests.get(url, verify=False)
         if response.status_code != 200:
@@ -113,10 +112,34 @@ def get_article_content(url):
             return "Erro ao acessar a notícia."
 
         soup = BeautifulSoup(response.content, 'html.parser')
-        paragraphs = soup.find_all("p")
-        article_content = " ".join([p.get_text() for p in paragraphs])
-        
-        print(f"Conteúdo da notícia: {article_content}")
+
+        # Extrair título
+        title_elem = soup.find("div", class_="news-detail-title")
+        title = title_elem.get_text(strip=True) if title_elem else "Título não encontrado."
+
+        # Extrair resumo
+        summary_elem = soup.find("div", class_="news-detail-summary")
+        summary = " ".join(
+            [elem.get_text(strip=True) for elem in summary_elem.find_all(["p", "div"], recursive=True)]
+        ) if summary_elem else "Resumo não encontrado."
+
+        # Extrair corpo da notícia
+        body_elem = soup.find("div", class_="news-detail-body")
+        body = " ".join(
+            [elem.get_text(strip=True) for elem in body_elem.find_all(["p", "div"], recursive=True)]
+        ) if body_elem else "Conteúdo não encontrado."
+
+        # Montar o conteúdo final do e-mail
+        article_content = f"""
+        {title}\n
+        {summary}\n
+        {body}
+        """
+
+        if not body.strip():
+            print(f"Conteúdo vazio após extração na URL: {url}")
+            return "Conteúdo vazio."
+
         return article_content
     except Exception as e:
         print(f"Erro ao processar a notícia: {e}")
