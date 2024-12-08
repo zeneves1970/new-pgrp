@@ -5,9 +5,9 @@ on:
   push:
     branches:
       - main
-  # Agendado para rodar a cada 5 minutos
+  # Agendado para rodar a cada 15 minutos
   schedule:
-    - cron: "*/5 * * * *"
+    - cron: "*/15 * * * *"
     
 jobs:
   process:
