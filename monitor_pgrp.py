@@ -103,7 +103,7 @@ def get_news_links(url):
 # Função principal para monitorar mudanças
 def monitor_news():
     seen_links = load_seen_links()  # Carrega os links vistos
-    current_links = get_news_links(URL)
+    current_links = get_news_links(URL)  # Busca links da página
 
     if not current_links:
         print("Nenhum link encontrado na página.")
@@ -119,7 +119,7 @@ def monitor_news():
         for new_link in new_links:
             print(f"Detectando nova notícia: {new_link}")
             try:
-                send_email_notification(new_link)
+                send_email_notification(get_article_content(new_link))
             except Exception as e:
                 print(f"Erro ao enviar email para {new_link}: {e}")
 
