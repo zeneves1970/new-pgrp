@@ -8,9 +8,9 @@ import urllib3
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 # Configurações do e-mail
-EMAIL_USER = "EMAIL_USER"  # Substitua pelo seu e-mail
-EMAIL_PASSWORD = "EMAIL_PASSWORD"  # Substitua pela sua senha ou App Password
-TO_EMAIL = "TO_EMAIL"  # Substitua pelo e-mail do destinatário
+EMAIL_USER = os.getenv("EMAIL_USER")  # Recupera do Secret
+EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD")  # Recupera do Secret
+TO_EMAIL = os.getenv("TO_EMAIL")  # Recupera do Secret
 
 # URL da página a ser monitorada
 BASE_URL = "https://www.pgdporto.pt/proc-web/"
