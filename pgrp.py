@@ -21,33 +21,26 @@ SEEN_LINKS_FILE = "seen_links.txt"  # Nome do arquivo para armazenar links já v
 # Função para carregar links já vistos de um arquivo
 def load_seen_links():
     if os.path.exists(SEEN_LINKS_FILE) and os.path.getsize(SEEN_LINKS_FILE) > 0:
-        with open(SEEN_LINKS_FILE, "r") as file:
-            links = {link.strip() for link in file.readlines() if link.strip()}
-            print(f"Links carregados do arquivo: {links}")
-            return links
+        try:
+            with open(SEEN_LINKS_FILE, "r") as file:
+                links = {link.strip() for link in file.readlines() if link.strip()}
+                print(f"Links carregados da cache: {links}")
+                return links
+        except Exception as e:
+            print(f"Erro ao carregar cache: {e}")
     else:
-        print("Arquivo 'seen_links.txt' não encontrado ou vazio. Criando novo arquivo.")
-        return set()
+        print("Cache vazio ou não existe. Criando novo conjunto de links.")
+    return set()
 
 
 def save_seen_links(seen_links):
-    if seen_links:
-        # Ordenação dos links pelo número no final da URL
-        sorted_links = sorted(
-            seen_links,
-            key=lambda x: int(x.split('=')[-1]),
-            reverse=True
-        )
-        try:
-            with open(SEEN_LINKS_FILE, "w") as file:
-                for link in sorted_links:
-                    file.write(f"{link}\n")
-            print(f"Links salvos no arquivo: {sorted_links}")
-        except Exception as e:
-            print(f"Erro ao salvar links no arquivo: {e}")
-    else:
-        print("Nenhum link para salvar.")
-
+    try:
+        with open(SEEN_LINKS_FILE, "w") as file:
+            for link in seen_links:
+                file.write(f"{link}\n")
+        print("Cache atualizado com links novos.")
+    except Exception as e:
+        print(f"Erro ao salvar links na cache: {e}")
 
 
 
@@ -148,24 +141,23 @@ def monitor_news():
     seen_links = load_seen_links()
     current_links = get_news_links(URL)
 
-    if not current_links:
-        print("Nenhum link encontrado na página.")
-        return
-
+    # Encontrando novos links que não foram vistos antes
     new_links = {link for link in current_links if link not in seen_links}
 
     if new_links:
         print(f"Novos links encontrados: {new_links}")
-        for new_link in new_links:
+        for link in new_links:
             try:
-                send_email_notification(get_article_content(new_link))
+                # Envia e-mail apenas para novos links
+                send_email_notification(get_article_content(link))
             except Exception as e:
-                print(f"Erro ao enviar email: {e}")
+                print(f"Erro ao enviar e-mail: {e}")
 
+        # Atualiza a cache após envio com os novos links
         seen_links.update(new_links)
-        save_seen_links(seen_links)  # Salva links atualizados no cache
+        save_seen_links(seen_links)
     else:
-        print("Nenhuma nova notícia encontrada.")
+        print("Nenhuma nova notícia para enviar e-mail.")
 
 # Execução principal
 if __name__ == "__main__":
