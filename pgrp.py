@@ -144,8 +144,8 @@ def get_article_content(url):
         return "Erro ao processar a notícia."
 
 
-# Função principal para monitorar mudanças
- seen_links = load_seen_links()
+def monitor_news():
+    seen_links = load_seen_links()  # Carrega os links vistos
     current_links = get_news_links(URL)
 
     if not current_links:
@@ -163,12 +163,11 @@ def get_article_content(url):
             except Exception as e:
                 print(f"Erro ao enviar email: {e}")
 
-        # Salvar no cache imediatamente após detectar e processar novos dados.
+        # Atualiza a lista de links vistos e grava no arquivo
         seen_links.update(new_links)
         save_seen_links(seen_links)
     else:
         print("Nenhuma nova notícia encontrada.")
-
 
 # Execução principal
 if __name__ == "__main__":
