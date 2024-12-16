@@ -30,10 +30,9 @@ def load_seen_links():
         return set()
 
 
-# Função para salvar os links no arquivo sem interferência de cache
 def save_seen_links(seen_links):
     if seen_links:
-        # Ordenar os links pela numeração no final (como no exemplo original)
+        # Ordenação dos links pelo número no final da URL
         sorted_links = sorted(
             seen_links,
             key=lambda x: int(x.split('=')[-1]),
@@ -48,6 +47,7 @@ def save_seen_links(seen_links):
             print(f"Erro ao salvar links no arquivo: {e}")
     else:
         print("Nenhum link para salvar.")
+
 
 
 
@@ -145,7 +145,7 @@ def get_article_content(url):
 
 
 def monitor_news():
-    seen_links = load_seen_links()  # Carrega os links vistos
+    seen_links = load_seen_links()
     current_links = get_news_links(URL)
 
     if not current_links:
@@ -157,15 +157,13 @@ def monitor_news():
     if new_links:
         print(f"Novos links encontrados: {new_links}")
         for new_link in new_links:
-            print(f"Detectando nova notícia: {new_link}")
             try:
                 send_email_notification(get_article_content(new_link))
             except Exception as e:
                 print(f"Erro ao enviar email: {e}")
 
-        # Atualiza a lista de links vistos e grava no arquivo
         seen_links.update(new_links)
-        save_seen_links(seen_links)
+        save_seen_links(seen_links)  # Salva links atualizados no cache
     else:
         print("Nenhuma nova notícia encontrada.")
 
