@@ -26,13 +26,13 @@ jobs:
         pip install -r requirements.txt
 
     # Alteração aqui: Recalcular cache usando um hash baseado no conteúdo de seen_links.txt
-    - name: Cache seen_links.txt
-      uses: actions/cache@v3
-      with:
-        path: seen_links.txt
-        key: ${{ runner.os }}-seen-links-cache-${{ hashFiles('**/seen_links.txt') }}
-        restore-keys: |
-          ${{ runner.os }}-seen-links-cache-
+   - name: Cache seen_links.txt
+  uses: actions/cache@v3
+  with:
+    path: seen_links.txt
+    key: ${{ runner.os }}-seen-links-cache-${{ hashFiles('seen_links.txt') }}
+    restore-keys: |
+      ${{ runner.os }}-seen-links-cache-
 
     - name: Run Script
       run: python3 pgrp.py
