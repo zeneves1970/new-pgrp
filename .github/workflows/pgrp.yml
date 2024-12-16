@@ -35,4 +35,9 @@ jobs:
           ${{ runner.os }}-seen-links-cache-
 
     - name: Run Script
+      env:  # Configurar variáveis de ambiente com Secrets
+        EMAIL_USER: ${{ secrets.EMAIL_USER }}
+        EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
+        TO_EMAIL: ${{ secrets.TO_EMAIL }}
       run: python3 pgrp.py
+
