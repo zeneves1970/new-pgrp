@@ -100,10 +100,6 @@ def get_news_links(url):
         print(f"Erro ao buscar links: {e}")
         return set()
 
-
-from bs4 import BeautifulSoup
-import requests
-
 def get_article_content(url):
     try:
         response = requests.get(url, verify=False)
@@ -147,32 +143,27 @@ def get_article_content(url):
 
 
 # Função principal para monitorar mudanças
-def monitor_news():
-    seen_links = load_seen_links()  # Carrega os links vistos
-    current_links = get_news_links(URL)  # Busca links da página
+ seen_links = load_seen_links()
+    current_links = get_news_links(URL)
 
     if not current_links:
         print("Nenhum link encontrado na página.")
         return
 
-    # Encontra novos links
     new_links = {link for link in current_links if link not in seen_links}
 
     if new_links:
         print(f"Novos links encontrados: {new_links}")
-        
-        # Processa e envia notificações por e-mail
         for new_link in new_links:
             print(f"Detectando nova notícia: {new_link}")
             try:
                 send_email_notification(get_article_content(new_link))
             except Exception as e:
-                print(f"Erro ao enviar email para {new_link}: {e}")
+                print(f"Erro ao enviar email: {e}")
 
-        # Atualiza a lista de links vistos e grava no arquivo
+        # Salvar no cache imediatamente após detectar e processar novos dados.
         seen_links.update(new_links)
         save_seen_links(seen_links)
-
     else:
         print("Nenhuma nova notícia encontrada.")
 
