@@ -1,11 +1,9 @@
 name: Send Emails on New Links
 
 on:
-  # Executa o script em push para a branch principal
   push:
     branches:
       - main
-  # Agendado para rodar a cada 15 minutos
   schedule:
     - cron: "*/15 * * * *"
 
@@ -27,6 +25,7 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
 
+    # Atualize cache com base no estado do arquivo de links visto
     - name: Cache seen_links.txt
       uses: actions/cache@v3
       with:
