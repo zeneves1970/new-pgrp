@@ -48,14 +48,15 @@ jobs:
           echo "CURRENT_HASH=${CURRENT_HASH}" >> $GITHUB_ENV
 
       - name: Check if Cache Should Be Updated
-        id: check_cache_update
-        run: |
-          if [ "$LAST_HASH" != "$CURRENT_HASH" ]; then
-            echo "Cache will be updated."
-            echo "UPDATE_CACHE=true" >> $GITHUB_ENV
-          else
-            echo "Cache will not be updated."
-            echo "UPDATE_CACHE=false" >> $GITHUB_ENV
+  id: check_cache_update
+  run: |
+    if [ "$LAST_HASH" != "$CURRENT_HASH" ]; then
+      echo "Cache will be updated."
+      echo "UPDATE_CACHE=true" >> $GITHUB_ENV
+    else
+      echo "Cache will not be updated."
+      echo "UPDATE_CACHE=false" >> $GITHUB_ENV
+    fi
 
       - name: Run Script
         run: python3 pgrp.py
