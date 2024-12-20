@@ -1,76 +1,64 @@
 name: Send Emails on New Links
 
 on:
-  push:
-    branches:
-      - main
-  schedule:
-    - cron: "*/15 * * * *"  # Executar a cada 15 minutos
+  push:
+    branches:
+      - main
+  schedule:
+    - cron: "*/15 * * * *"  # Executar a cada 15 minutos
 
 jobs:
-  process:
-    runs-on: ubuntu-latest
+  process:
+    runs-on: ubuntu-latest
 
-    steps:
-    - name: Checkout Repository
-      uses: actions/checkout@v2
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v2
 
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.x'
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.x'
 
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
 
-    # Certifique-se de que seen_links.txt existe
-    - name: Ensure seen_links.txt Exists
-      run: |
-        if [ ! -f seen_links.txt ]; then
-          touch seen_links.txt
-        fi
+    - name: Ensure seen_links.txt Exists (Manter)
+      run: |
+        if [ ! -f seen_links.txt ]; then
+          touch seen_links.txt
+        fi
 
-    # Gerar chave de cache dinâmica
-    - name: Generate Cache Key
-      id: cache-key
-      run: echo "key=$(sha256sum seen_links.txt | awk '{print $1}')" >> $GITHUB_ENV
+    # Gerar chave de cache dinâmica **ao executar o script**
+    - name: Generate Cache Key
+      run: echo "CACHE_KEY=seen-links-cache-$(sha256sum seen_links.txt | awk '{print $1}')" >> $GITHUB_ENV
 
-    # Restaurar cache
-    - name: Restore Cache
-      uses: actions/cache@v3
-      with:
-        path: seen_links.txt
-        key: ${{ runner.os }}-seen-links-cache-${{ env.key }}
-        restore-keys: |
-          ${{ runner.os }}-seen-links-cache-
+    # Restaurar cache (usar a chave dinâmica)
+    - name: Restore Cache
+      uses: actions/cache@v3
+      with:
+        path: seen_links.txt
+        key: ${{ runner.os }}-seen-links-cache-${{ env.CACHE_KEY }}
+        restore-keys: |
+          ${{ runner.os }}-seen-links-cache-
 
-    # Debug: Verificar o conteúdo do arquivo antes
-    - name: Debug - Show seen_links.txt Before Script
-      run: cat seen_links.txt || echo "seen_links.txt does not exist"
+    # Debug: Verificar o conteúdo do arquivo antes
+    - name: Debug - Show seen_links.txt Before Script (Manter)
+      run: cat seen_links.txt || echo "seen_links.txt does not exist"
 
-    # Executar o script Python
-    - name: Run Script
-      env:
-        EMAIL_USER: ${{ secrets.EMAIL_USER }}
-        EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
-        TO_EMAIL: ${{ secrets.TO_EMAIL }}
-      run: python3 pgrp.py
+    # Executar o script Python
+    - name: Run Script
+      env:
+        EMAIL_USER: ${{ secrets.EMAIL_USER }}
+        EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
+        TO_EMAIL: ${{ secrets.TO_EMAIL }}
+      run: python3 pgrp.py
 
-    # Debug: Verificar o conteúdo do arquivo após o script
-    - name: Debug - Show seen_links.txt After Script
-      run: cat seen_links.txt || echo "seen_links.txt is empty"
+    # Debug: Verificar o conteúdo do arquivo após o script (Manter)
+    - name: Debug - Show seen_links.txt After Script
+      run: cat seen_links.txt || echo "seen_links.txt is empty"
 
-    # Gerar novo hash para ver se houve alteração no arquivo
-    - name: Generate New Cache Key
-      id: new-cache-key
-      run: echo "new_key=$(sha256sum seen_links.txt | awk '{print $1}')" >> $GITHUB_ENV
-
-    # Salvar cache se houve alteração no arquivo
-    - name: Save Updated Cache
-      if: env.key != env.new_key
-      uses: actions/cache@v3
-      with:
-        path: seen_links.txt
-        key: ${{ runner.os }}-seen-links-cache-${{ env.new_key }}
+    # Não é necessário criar uma nova chave após o script
+    # O cache já é salvo com a chave dinâmica correta
