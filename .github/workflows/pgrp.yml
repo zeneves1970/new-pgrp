@@ -1,39 +1,71 @@
-name: Cache and Process Links
+name: Processar Links e Atualizar Cache
 
 on:
-  push:
-    branches:
-      - main
+  workflow_dispatch:
+  schedule:
+    - cron: "0 * * * *" # Executa a cada hora
 
 jobs:
-  cache_and_process:
+  process-links:
     runs-on: ubuntu-latest
-
     steps:
-      # 1. Restaurar o cache baseado na chave calculada a partir do conteúdo do arquivo
-      - name: Restaurar cache
-        uses: actions/cache@v3
-        id: cache-seen-links
-        with:
-          path: seen_links.txt
-          key: seen-links-cache-${{ hashFiles('seen_links.txt') }}
+      - name: Check out code
+        uses: actions/checkout@v3
 
-      # 2. Garantir que o arquivo seen_links.txt exista, caso contrário cria-o
-      - name: Garantir que o arquivo seen_links.txt exista
-        run: |
-          if [ ! -f seen_links.txt ]; then
-            touch seen_links.txt
-          fi
-
-      # 3. Executar o script Python que vai procurar novos links
-      - name: Executar script Python
-        run: python3 pgrp.py
-
-      # 4. Verificar se houve mudança e salvar cache com o novo estado do arquivo
-      - name: Salvar cache atualizado
+      - name: Restaurar Cache seen_links.txt
         uses: actions/cache@v3
         with:
           path: seen_links.txt
           key: seen-links-cache-${{ hashFiles('seen_links.txt') }}
           restore-keys: |
             seen-links-cache-
+
+      - name: Criar seen_links.txt se não existir
+        run: |
+          if [ ! -f seen_links.txt ]; then
+            touch seen_links.txt
+          fi
+
+      - name: Verificar estado do arquivo antes do script
+        run: |
+          echo "Estado do arquivo antes de executar o script:"
+          ls -l seen_links.txt || echo "Arquivo não encontrado"
+          sha256sum seen_links.txt || echo "Arquivo não possui checksum"
+          cat seen_links.txt || echo "Arquivo vazio ou não existe"
+
+      - name: Executar script Python
+        run: python3 pgrp.py
+        env:
+          pythonLocation: /opt/hostedtoolcache/Python/3.12.8/x64
+          PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.8/x64/lib/pkgconfig
+          Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.8/x64
+          Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.8/x64
+          Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.8/x64
+          LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.8/x64/lib
+
+      - name: Verificar estado do arquivo após o script
+        run: |
+          echo "Estado do arquivo após executar o script:"
+          ls -l seen_links.txt || echo "Arquivo não encontrado"
+          sha256sum seen_links.txt || echo "Arquivo não possui checksum"
+          cat seen_links.txt || echo "Arquivo vazio ou não existe"
+
+      - name: Verificar se o arquivo foi alterado
+        id: check_changes
+        run: |
+          # Verificar se houve mudança no arquivo
+          current_checksum=$(sha256sum seen_links.txt | awk '{ print $1 }')
+          echo "Checksum atual: $current_checksum"
+          echo "::set-output name=checksum::${current_checksum}"
+
+      - name: Atualizar Cache se o arquivo foi alterado
+        if: steps.check_changes.outputs.checksum != ${{ hashFiles('seen_links.txt') }}
+        uses: actions/cache@v3
+        with:
+          path: seen_links.txt
+          key: seen-links-cache-${{ hashFiles('seen_links.txt') }}
+          restore-keys: |
+            seen-links-cache-
+
+      - name: Confirmar checksum final
+        run: sha256sum seen_links.txt
