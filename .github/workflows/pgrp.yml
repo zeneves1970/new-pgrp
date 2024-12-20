@@ -1,73 +1,70 @@
-name: Process Links and Update Cache
+name: Cache and Process Links
 
 on:
   push:
     branches:
       - main
   schedule:
-    - cron: '0 0 * * *'  # Exemplo de execução diária
+    - cron: '0 0 * * *' # Executar todos os dias à meia-noite
 
 jobs:
-  process:
+  update_cache:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v2
+      # Check-out do código para garantir que o repositório esteja disponível
+      - name: Checkout code
+        uses: actions/checkout@v3
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.x'
-
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-
-      - name: Ensure seen_links.txt Exists
-        run: |
-          if [ ! -f seen_links.txt ]; then
-            touch seen_links.txt
-          fi
-
-      - name: Read last hash from file
-        id: read_last_hash
-        run: |
-          if [ -f last_hash.txt ]; then
-            LAST_HASH=$(cat last_hash.txt)
-            echo "LAST_HASH=${LAST_HASH}" >> $GITHUB_ENV
-          else
-            echo "LAST_HASH=none" >> $GITHUB_ENV
-          fi
-
-      - name: Generate Current Hash
-        id: generate_current_hash
-        run: |
-          CURRENT_HASH=$(sha256sum seen_links.txt | awk '{print $1}')
-          echo "CURRENT_HASH=${CURRENT_HASH}" >> $GITHUB_ENV
-
-      - name: Check if Cache Should Be Updated
-  id: check_cache_update
-  run: |
-    if [ "$LAST_HASH" != "$CURRENT_HASH" ]; then
-      echo "Cache will be updated."
-      echo "UPDATE_CACHE=true" >> $GITHUB_ENV
-    else
-      echo "Cache will not be updated."
-      echo "UPDATE_CACHE=false" >> $GITHUB_ENV
-    fi
-
-      - name: Run Script
-        run: python3 pgrp.py
-
-      - name: Save Hash After Script Execution
-        run: |
-          echo "${{ env.CURRENT_HASH }}" > last_hash.txt
-
-      - name: Update Cache
-        if: ${{ env.UPDATE_CACHE == 'true' }}
+      # Carregar a cache anterior
+      - name: Restore Cache
         uses: actions/cache@v3
         with:
-          path: seen_links.txt
-          key: seen-links-cache-${{ env.CURRENT_HASH }}
+          path: ./seen_links.txt
+          key: seen-links-cache-{{ hashFiles('seen_links.txt') }}
+          restore-keys: |
+            seen-links-cache-
+
+      # Calculando o hash do arquivo seen_links.txt antes de rodar o script
+      - name: Get Last Hash
+        id: get_last_hash
+        run: |
+          if [ -f seen_links.txt ]; then
+            LAST_HASH=$(sha256sum seen_links.txt | awk '{print $1}')
+            echo "Last hash: $LAST_HASH"
+          else
+            echo "File seen_links.txt does not exist."
+            LAST_HASH="notfound"
+          fi
+          echo "LAST_HASH=$LAST_HASH" >> $GITHUB_ENV
+
+      # Executar o script Python (pgrp.py)
+      - name: Run Python script
+        run: python3 ./pgrp.py
+
+      # Calcular o novo hash após rodar o script
+      - name: Get Current Hash
+        id: get_current_hash
+        run: |
+          CURRENT_HASH=$(sha256sum seen_links.txt | awk '{print $1}')
+          echo "Current hash: $CURRENT_HASH"
+          echo "CURRENT_HASH=$CURRENT_HASH" >> $GITHUB_ENV
+
+      # Verificar se houve alteração no arquivo e decidir se a cache deve ser atualizada
+      - name: Check if Cache Should Be Updated
+        id: check_cache_update
+        run: |
+          if [ "$LAST_HASH" != "$CURRENT_HASH" ]; then
+            echo "Cache will be updated."
+            echo "UPDATE_CACHE=true" >> $GITHUB_ENV
+          else
+            echo "Cache will not be updated."
+            echo "UPDATE_CACHE=false" >> $GITHUB_ENV
+
+      # Atualizar a cache (se necessário)
+      - name: Save Cache
+        if: env.UPDATE_CACHE == 'true'
+        uses: actions/cache@v3
+        with:
+          path: ./seen_links.txt
+          key: seen-links-cache-${{ hashFiles('seen_links.txt') }}
