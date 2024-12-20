@@ -56,15 +56,14 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-seen-links-cache-
 
-    
+    # Debug: Mostrar conteúdo de seen_links.txt
     - name: Debug - Show seen_links.txt
-  run: |
-    if [ -f seen_links.txt ]; then
-      cat seen_links.txt
-    else
-      echo "seen_links.txt does not exist"
-    fi
-
+      run: |
+        if [ -f seen_links.txt ]; then
+          cat seen_links.txt
+        else
+          echo "seen_links.txt does not exist"
+        fi
 
     # Executar script
     - name: Run Script
@@ -74,7 +73,11 @@ jobs:
         TO_EMAIL: ${{ secrets.TO_EMAIL }}
       run: python3 pgrp.py
 
-    # Debug: Verificar o conteúdo do arquivo após
+    # Debug: Verificar o conteúdo do arquivo após o script
     - name: Debug - Show seen_links.txt After Script
-      run: cat seen_links.txt || 
-
+      run: |
+        if [ -f seen_links.txt ]; then
+          cat seen_links.txt
+        else
+          echo "seen_links.txt does not exist"
+        fi
