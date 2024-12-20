@@ -5,7 +5,7 @@ on:
     branches:
       - main
   schedule:
-    - cron: "*/15 * * * *" # Executar a cada 15 minutos
+    - cron: "*/15 * * * *"  # Executar a cada 15 minutos
 
 jobs:
   process:
@@ -22,42 +22,34 @@ jobs:
       - name: Install dependencies
         run:
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
+          pip install -r requirements.txt  # Assuming you have a requirements.txt
 
-      - name: Ensure seen_links.txt Exists (Manter)
-        run: |
-          if [ ! -f seen_links.txt ]; then
-            touch seen_links.txt
-          fi
+      - name: Ensure seen_links.txt Exists (Manter)
+        run: |
+          if [ ! -f seen_links.txt ]; then
+            touch seen_links.txt
+          fi
 
-      # Gerar chave de cache dinâmica **ao executar o script**
-      - name: Generate Cache Key
-        run: echo "CACHE_KEY=seen-links-cache-$(sha256sum seen_links.txt | awk '{print $1}')" >> $GITHUB_ENV
+      - name: Generate Cache Key (Dynamically during execution)
+        run: echo "CACHE_KEY=seen-links-cache-$(sha256sum seen_links.txt | awk '{print $1}')" >> $GITHUB_ENV
 
-      # Restaurar cache (usar a chave dinâmica)
-      - name: Restore Cache
-        uses: actions/cache@v3
-        with:
-          path: seen_links.txt
-          key: ${{ runner.os }}-seen-links-cache-${{ env.CACHE_KEY }}
-          restore-keys: |
-            ${{ runner.os }}-seen-links-cache-
+      - name: Restore Cache (Use dynamic key)
+        uses: actions/cache@v3
+        with:
+          path: seen_links.txt
+          key: ${{ runner.os }}-seen-links-cache-${{ env.CACHE_KEY }}
+          restore-keys: |
+            ${{ runner.os }}-seen-links-cache-
 
-      # Debug: Verificar o conteúdo do arquivo antes
-      - name: Debug - Show seen_links.txt Before Script (Manter)
-        run: cat seen_links.txt || echo "seen_links.txt does not exist"
+      - name: Debug - Show seen_links.txt Before Script (Manter)
+        run: cat seen_links.txt || echo "seen_links.txt does not exist"
 
-      # Executar o script Python
-      - name: Run Script
-        env:
-          EMAIL_USER: ${{ secrets.EMAIL_USER }}
-          EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
-          TO_EMAIL: ${{ secrets.TO_EMAIL }}
-        run: python3 pgrp.py
+      - name: Run Script
+        env:
+          EMAIL_USER: ${{ secrets.EMAIL_USER }}
+          EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
+          TO_EMAIL: ${{ secrets.TO_EMAIL }}
+        run: python3 pgrp.py
 
-      # Debug: Verificar o conteúdo do arquivo após o script (Manter)
-      - name: Debug - Show seen_links.txt After Script
-        run: cat seen_links.txt || echo "seen_links.txt is empty"
-  
-      # Não é necessário criar uma nova chave após o script
-      # O cache já é salvo com a chave dinâmica correta
+      - name: Debug - Show seen_links.txt After Script (Manter)
+        run: cat seen_links.txt || echo "seen_links.txt is empty"
