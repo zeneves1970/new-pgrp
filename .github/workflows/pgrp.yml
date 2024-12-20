@@ -1,49 +1,32 @@
-name: Processar Links e Atualizar Cache
-
-on:
-  workflow_dispatch:
-  schedule:
-    - cron: "0 * * * *" # Executa a cada hora
-
 jobs:
-  process-links:
+  cache_and_process:
     runs-on: ubuntu-latest
-    steps:
-      - name: Check out code
-        uses: actions/checkout@v3
 
-      - name: Restaurar Cache seen_links.txt
+    steps:
+      # 1. Restaurar o cache baseado na chave calculada a partir do conteúdo do arquivo
+      - name: Restaurar cache
         uses: actions/cache@v3
+        id: cache-seen-links
         with:
           path: seen_links.txt
           key: seen-links-cache-${{ hashFiles('seen_links.txt') }}
-          restore-keys: |
-            seen-links-cache-
 
-      - name: Verificar estado do arquivo antes do script
+      # 2. Garantir que o arquivo seen_links.txt existe, caso contrário cria-o
+      - name: Garantir que o arquivo seen_links.txt exista
         run: |
-          echo "Estado do arquivo antes de executar o script:"
-          ls -l seen_links.txt || echo "Arquivo não encontrado"
-          sha256sum seen_links.txt || echo "Arquivo não possui checksum"
-          cat seen_links.txt || echo "Arquivo vazio ou não existe"
+          if [ ! -f seen_links.txt ]; then
+            touch seen_links.txt
+          fi
 
+      # 3. Executar o script Python que vai procurar novos links
       - name: Executar script Python
         run: python3 pgrp.py
 
-      - name: Verificar estado do arquivo após o script
-        run: |
-          echo "Estado do arquivo após executar o script:"
-          ls -l seen_links.txt || echo "Arquivo não encontrado"
-          sha256sum seen_links.txt || echo "Arquivo não possui checksum"
-          cat seen_links.txt || echo "Arquivo vazio ou não existe"
-
-      - name: Atualizar Cache seen_links.txt
+      # 4. Verificar se houve mudança e salvar cache com o novo estado do arquivo
+      - name: Salvar cache atualizado
         uses: actions/cache@v3
         with:
           path: seen_links.txt
           key: seen-links-cache-${{ hashFiles('seen_links.txt') }}
           restore-keys: |
             seen-links-cache-
-
-      - name: Confirmar checksum final
-        run: sha256sum seen_links.txt
