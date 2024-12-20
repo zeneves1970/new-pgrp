@@ -1,6 +1,16 @@
+name: Process Links and Update Cache
+
+on:
+  push:
+    branches:
+      - main
+  schedule:
+    - cron: '0 0 * * *'  # Exemplo de execução diária
+
 jobs:
   process:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v2
