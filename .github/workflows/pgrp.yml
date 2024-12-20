@@ -1,3 +1,10 @@
+name: Cache and Process Links
+
+on:
+  push:
+    branches:
+      - main
+
 jobs:
   cache_and_process:
     runs-on: ubuntu-latest
@@ -11,7 +18,7 @@ jobs:
           path: seen_links.txt
           key: seen-links-cache-${{ hashFiles('seen_links.txt') }}
 
-      # 2. Garantir que o arquivo seen_links.txt existe, caso contrário cria-o
+      # 2. Garantir que o arquivo seen_links.txt exista, caso contrário cria-o
       - name: Garantir que o arquivo seen_links.txt exista
         run: |
           if [ ! -f seen_links.txt ]; then
