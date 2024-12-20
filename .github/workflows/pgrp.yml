@@ -25,21 +25,18 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
 
-    # Certifique-se de que o arquivo seen_links.txt exista
     - name: Ensure seen_links.txt Exists
       run: |
         if [ ! -f seen_links.txt ]; then
           touch seen_links.txt
         fi
 
-    # Gerar chave de cache com base no hash do arquivo seen_links.txt
     - name: Generate Cache Key
       id: cache-key
       run: |
         checksum=$(sha256sum seen_links.txt | awk '{print $1}')
         echo "CACHE_KEY=seen-links-cache-${checksum}" >> $GITHUB_ENV
 
-    # Restaurar cache com base na chave gerada
     - name: Cache seen_links.txt
       uses: actions/cache@v3
       with:
@@ -48,7 +45,6 @@ jobs:
         restore-keys: |
           seen-links-cache-
 
-    # Executar o script principal
     - name: Run Script
       env:
         EMAIL_USER: ${{ secrets.EMAIL_USER }}
@@ -56,11 +52,16 @@ jobs:
         TO_EMAIL: ${{ secrets.TO_EMAIL }}
       run: python3 pgrp.py
 
-    # Salvar a cache novamente, se necessário, com a nova chave gerada
-    - name: Save Cache with Updated Key
+    - name: Regenerate Cache Key
+      id: cache-key-updated
+      run: |
+        checksum=$(sha256sum seen_links.txt | awk '{print $1}')
+        echo "UPDATED_CACHE_KEY=seen-links-cache-${checksum}" >> $GITHUB_ENV
+
+    - name: Save Updated Cache
       uses: actions/cache@v3
       with:
         path: seen_links.txt
-        key: ${{ env.CACHE_KEY }}  # Usar a mesma chave gerada inicialmente
+        key: ${{ env.UPDATED_CACHE_KEY }}
         restore-keys: |
           seen-links-cache-
