@@ -1,70 +1,76 @@
-name: Cache and Process Links
+name: Send Emails on New Links
 
 on:
   push:
     branches:
       - main
   schedule:
-    - cron: '0 0 * * *' # Executar todos os dias à meia-noite
+    - cron: "*/15 * * * *"  # Executar a cada 15 minutos
 
 jobs:
-  update_cache:
+  process:
     runs-on: ubuntu-latest
 
     steps:
-      # Check-out do código para garantir que o repositório esteja disponível
-      - name: Checkout code
-        uses: actions/checkout@v3
+    - name: Checkout Repository
+      uses: actions/checkout@v2
 
-      # Carregar a cache anterior
-      - name: Restore Cache
-        uses: actions/cache@v3
-        with:
-          path: ./seen_links.txt
-          key: seen-links-cache-{{ hashFiles('seen_links.txt') }}
-          restore-keys: |
-            seen-links-cache-
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.x'
 
-      # Calculando o hash do arquivo seen_links.txt antes de rodar o script
-      - name: Get Last Hash
-        id: get_last_hash
-        run: |
-          if [ -f seen_links.txt ]; then
-            LAST_HASH=$(sha256sum seen_links.txt | awk '{print $1}')
-            echo "Last hash: $LAST_HASH"
-          else
-            echo "File seen_links.txt does not exist."
-            LAST_HASH="notfound"
-          fi
-          echo "LAST_HASH=$LAST_HASH" >> $GITHUB_ENV
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
 
-      # Executar o script Python (pgrp.py)
-      - name: Run Python script
-        run: python3 ./pgrp.py
+    # Certifique-se de que seen_links.txt existe
+    - name: Ensure seen_links.txt Exists
+      run: |
+        if [ ! -f seen_links.txt ]; then
+          touch seen_links.txt
+        fi
 
-      # Calcular o novo hash após rodar o script
-      - name: Get Current Hash
-        id: get_current_hash
-        run: |
-          CURRENT_HASH=$(sha256sum seen_links.txt | awk '{print $1}')
-          echo "Current hash: $CURRENT_HASH"
-          echo "CURRENT_HASH=$CURRENT_HASH" >> $GITHUB_ENV
+    # Gerar chave de cache dinâmica
+    - name: Generate Cache Key
+      id: cache-key
+      run: echo "key=$(sha256sum seen_links.txt | awk '{print $1}')" >> $GITHUB_ENV
 
-      # Verificar se houve alteração no arquivo e decidir se a cache deve ser atualizada
-      - name: Check if Cache Should Be Updated
-        id: check_cache_update
-        run: |
-          if [ "$LAST_HASH" != "$CURRENT_HASH" ]; then
-            echo "Cache will be updated."
-            echo "UPDATE_CACHE=true" >> $GITHUB_ENV
-          else
-            echo "Cache will not be updated."
-            echo "UPDATE_CACHE=false" >> $GITHUB_ENV
+    # Restaurar cache
+    - name: Restore Cache
+      uses: actions/cache@v3
+      with:
+        path: seen_links.txt
+        key: ${{ runner.os }}-seen-links-cache-${{ env.key }}
+        restore-keys: |
+          ${{ runner.os }}-seen-links-cache-
 
-      # Atualizar a cache (se necessário)
-      - name: Save Cache
-        if: env.UPDATE_CACHE == 'true'
-        uses: actions/cache@v3
-        with:
-          path: ./seen_links.txt
-          key: seen-links-cache-${{ hashFiles('seen_links.txt') }}
+    # Debug: Verificar o conteúdo do arquivo antes
+    - name: Debug - Show seen_links.txt Before Script
+      run: cat seen_links.txt || echo "seen_links.txt does not exist"
+
+    # Executar o script Python
+    - name: Run Script
+      env:
+        EMAIL_USER: ${{ secrets.EMAIL_USER }}
+        EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
+        TO_EMAIL: ${{ secrets.TO_EMAIL }}
+      run: python3 pgrp.py
+
+    # Debug: Verificar o conteúdo do arquivo após o script
+    - name: Debug - Show seen_links.txt After Script
+      run: cat seen_links.txt || echo "seen_links.txt is empty"
+
+    # Gerar novo hash para ver se houve alteração no arquivo
+    - name: Generate New Cache Key
+      id: new-cache-key
+      run: echo "new_key=$(sha256sum seen_links.txt | awk '{print $1}')" >> $GITHUB_ENV
+
+    # Salvar cache se houve alteração no arquivo
+    - name: Save Updated Cache
+      if: env.key != env.new_key
+      uses: actions/cache@v3
+      with:
+        path: seen_links.txt
+        key: ${{ runner.os }}-seen-links-cache-${{ env.new_key }}
