@@ -25,7 +25,14 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
 
-    # Cache seen_links.txt para evitar execução desnecessária
+    # Certifique-se de que seen_links.txt existe
+    - name: Ensure seen_links.txt Exists
+      run: |
+        if [ ! -f seen_links.txt ]; then
+          touch seen_links.txt
+        fi
+
+    # Restaurar cache
     - name: Cache seen_links.txt
       uses: actions/cache@v3
       with:
@@ -34,6 +41,11 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-seen-links-cache-
 
+    # Debug: Verificar o conteúdo do arquivo antes
+    - name: Debug - Show seen_links.txt Before Script
+      run: cat seen_links.txt || echo "seen_links.txt does not exist"
+
+    # Executar script
     - name: Run Script
       env:
         EMAIL_USER: ${{ secrets.EMAIL_USER }}
@@ -41,4 +53,13 @@ jobs:
         TO_EMAIL: ${{ secrets.TO_EMAIL }}
       run: python3 pgrp.py
 
+    # Debug: Verificar o conteúdo do arquivo após
+    - name: Debug - Show seen_links.txt After Script
+      run: cat seen_links.txt || echo "seen_links.txt is empty"
 
+    # Salvar cache atualizado
+    - name: Save Updated Cache
+      uses: actions/cache@v3
+      with:
+        path: seen_links.txt
+        key: ${{ runner.os }}-seen-links-cache-${{ github.run_id }}
