@@ -45,12 +45,26 @@ jobs:
         restore-keys: |
           seen-links-cache-
 
+    - name: Debug Cache Before Script
+      run: |
+        echo "Estado do arquivo antes de executar o script:"
+        ls -l seen_links.txt
+        sha256sum seen_links.txt || echo "Arquivo ainda não possui checksum válido."
+        cat seen_links.txt || echo "Arquivo está vazio ou não existe."
+
     - name: Run Script
       env:
         EMAIL_USER: ${{ secrets.EMAIL_USER }}
         EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
         TO_EMAIL: ${{ secrets.TO_EMAIL }}
       run: python3 pgrp.py
+
+    - name: Debug Cache After Script
+      run: |
+        echo "Estado do arquivo após executar o script:"
+        ls -l seen_links.txt
+        sha256sum seen_links.txt || echo "Arquivo ainda não possui checksum válido."
+        cat seen_links.txt || echo "Arquivo está vazio ou não existe."
 
     - name: Regenerate Cache Key
       id: cache-key-updated
