@@ -32,12 +32,17 @@ jobs:
           touch seen_links.txt
         fi
 
+    # Gerar chave de cache dinâmica
+    - name: Generate Cache Key
+      id: cache-key
+      run: echo "key=$(sha256sum seen_links.txt | awk '{print $1}')" >> $GITHUB_ENV
+
     # Restaurar cache
     - name: Cache seen_links.txt
       uses: actions/cache@v3
       with:
         path: seen_links.txt
-        key: ${{ runner.os }}-seen-links-cache
+        key: ${{ runner.os }}-seen-links-cache-${{ env.key }}
         restore-keys: |
           ${{ runner.os }}-seen-links-cache-
 
@@ -62,4 +67,4 @@ jobs:
       uses: actions/cache@v3
       with:
         path: seen_links.txt
-        key: ${{ runner.os }}-seen-links-cache-${{ github.run_id }}
+        key: ${{ runner.os }}-seen-links-cache-${{ env.key }}
