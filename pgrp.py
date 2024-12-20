@@ -38,6 +38,8 @@ def save_seen_links(seen_links):
         with open(SEEN_LINKS_FILE, "w") as file:
             for link in seen_links:
                 file.write(f"{link}\n")
+            file.flush()
+            os.fsync(file.fileno())  # Garante que as mudanças sejam persistidas
         print("Cache atualizado com links novos.")
     except Exception as e:
         print(f"Erro ao salvar links na cache: {e}")
