@@ -1,11 +1,11 @@
 name: Send Emails on New Links
 
 on:
-  push:
-    branches:
-      - main
-  schedule:
-    - cron: "*/15 * * * *"  # Executar a cada 15 minutos
+  push:
+    branches:
+      - main
+  schedule:
+    - cron: "*/15 * * * *"  # Executar a cada 15 minutos
 
 jobs:
   process:
