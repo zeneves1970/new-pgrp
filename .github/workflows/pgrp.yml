@@ -5,7 +5,7 @@ on:
     branches:
       - main
   schedule:
-    - cron: "*/15 * * * *"
+    - cron: "*/15 * * * *"  # Executa a cada 15 minutos
 
 jobs:
   process:
@@ -31,11 +31,13 @@ jobs:
           touch seen_links.txt
         fi
 
-    - name: Generate Cache Key
+    - name: Generate Cache Key with Timestamp
       id: cache-key
       run: |
+        # Gerar a chave de cache usando o hash do arquivo + timestamp
+        timestamp=$(date +%s)
         checksum=$(sha256sum seen_links.txt | awk '{print $1}')
-        echo "CACHE_KEY=seen-links-cache-${checksum}" >> $GITHUB_ENV
+        echo "CACHE_KEY=seen-links-cache-${checksum}-${timestamp}" >> $GITHUB_ENV
 
     - name: Cache seen_links.txt
       uses: actions/cache@v3
@@ -57,7 +59,7 @@ jobs:
         EMAIL_USER: ${{ secrets.EMAIL_USER }}
         EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
         TO_EMAIL: ${{ secrets.TO_EMAIL }}
-      run: python3 ./pgrp.py  # Certifique-se de usar o caminho correto para o script
+      run: python3 pgrp.py
 
     - name: Debug Cache After Script
       run: |
@@ -66,11 +68,13 @@ jobs:
         sha256sum seen_links.txt || echo "Arquivo ainda não possui checksum válido."
         cat seen_links.txt || echo "Arquivo está vazio ou não existe."
 
-    - name: Regenerate Cache Key
+    - name: Regenerate Cache Key if Modified
       id: cache-key-updated
       run: |
+        # Gerar novo timestamp e verificar se houve alteração no arquivo
+        timestamp=$(date +%s)
         checksum=$(sha256sum seen_links.txt | awk '{print $1}')
-        echo "UPDATED_CACHE_KEY=seen-links-cache-${checksum}" >> $GITHUB_ENV
+        echo "UPDATED_CACHE_KEY=seen-links-cache-${checksum}-${timestamp}" >> $GITHUB_ENV
 
     - name: Save Updated Cache
       uses: actions/cache@v3
