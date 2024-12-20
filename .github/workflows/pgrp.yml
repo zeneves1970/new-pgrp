@@ -55,3 +55,12 @@ jobs:
         EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
         TO_EMAIL: ${{ secrets.TO_EMAIL }}
       run: python3 pgrp.py
+
+    # Forçar o cache a ser salvo, mesmo se não houver alterações
+    - name: Save Cache
+      uses: actions/cache@v3
+      with:
+        path: seen_links.txt
+        key: ${{ env.key }}-$(date +%s)  # Garantir que o cache seja atualizado com um timestamp
+        restore-keys: |
+          ${{ runner.os }}-seen-links-cache-
