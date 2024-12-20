@@ -25,47 +25,30 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
 
-    # Certifique-se de que seen_links.txt existe
+    # Certifique-se de que o arquivo seen_links.txt exista
     - name: Ensure seen_links.txt Exists
       run: |
         if [ ! -f seen_links.txt ]; then
           touch seen_links.txt
         fi
 
-    # Gerar chave de cache dinâmica
+    # Gerar chave de cache com base no hash do arquivo seen_links.txt
     - name: Generate Cache Key
       id: cache-key
       run: |
         checksum=$(sha256sum seen_links.txt | awk '{print $1}')
-        echo "key=${{ runner.os }}-seen-links-cache-${checksum}-$(date +%s)" >> $GITHUB_ENV
+        echo "CACHE_KEY=seen-links-cache-${checksum}" >> $GITHUB_ENV
 
-    # Restaurar cache
-    - name: Acquire Cache Lock
-      run: |
-        while [ -f cache.lock ]; do
-          echo "Waiting for cache lock to be released..."
-          sleep 5
-        done
-        touch cache.lock
-
+    # Restaurar cache com base na chave gerada
     - name: Cache seen_links.txt
       uses: actions/cache@v3
       with:
         path: seen_links.txt
-        key: ${{ env.key }}
+        key: ${{ env.CACHE_KEY }}
         restore-keys: |
-          ${{ runner.os }}-seen-links-cache-
+          seen-links-cache-
 
-    # Debug: Mostrar conteúdo de seen_links.txt
-    - name: Debug - Show seen_links.txt
-      run: |
-        if [ -f seen_links.txt ]; then
-          cat seen_links.txt
-        else
-          echo "seen_links.txt does not exist"
-        fi
-
-    # Executar script
+    # Executar o script principal
     - name: Run Script
       env:
         EMAIL_USER: ${{ secrets.EMAIL_USER }}
@@ -73,11 +56,11 @@ jobs:
         TO_EMAIL: ${{ secrets.TO_EMAIL }}
       run: python3 pgrp.py
 
-    # Debug: Verificar o conteúdo do arquivo após o script
-    - name: Debug - Show seen_links.txt After Script
-      run: |
-        if [ -f seen_links.txt ]; then
-          cat seen_links.txt
-        else
-          echo "seen_links.txt does not exist"
-        fi
+    # Salvar a cache novamente, se necessário, com a nova chave gerada
+    - name: Save Cache with Updated Key
+      uses: actions/cache@v3
+      with:
+        path: seen_links.txt
+        key: ${{ env.CACHE_KEY }}  # Usar a mesma chave gerada inicialmente
+        restore-keys: |
+          seen-links-cache-
