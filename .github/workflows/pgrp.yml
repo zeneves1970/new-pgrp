@@ -5,7 +5,7 @@ on:
     branches:
       - main
   schedule:
-    - cron: "*/15 * * * *"  # Executar a cada 15 minutos
+    - cron: "*/15 * * * *"
 
 jobs:
   process:
@@ -22,41 +22,48 @@ jobs:
       - name: Install dependencies
         run: python -m pip install --upgrade pip && python -m pip install -r requirements.txt
 
-      - name: Ensure seen_links.txt Exists (Manter)
+      - name: Ensure seen_links.txt Exists
+        run: touch seen_links.txt
+
+      - name: Acquire Lock
+        id: lock
         run: |
-          if [ ! -f seen_links.txt ]; then
-            touch seen_links.txt
+          if [[ ! -f .lock ]]; then
+            touch .lock
+            echo "::set-output name=locked::true"
+          else
+            echo "::set-output name=locked::false"
           fi
 
-      # Gerar a chave do cache (dinamicamente durante a execução)
       - name: Generate Cache Key
         id: cache-key
-        run: echo "::set-output name=key::$(sha256sum seen_links.txt 2>/dev/null || echo 'empty')"
+        if: steps.lock.outputs.locked == 'true'
+        run: echo "::set-output name=key::${{ runner.os }}-seen-links-cache-$(sha256sum seen_links.txt 2>/dev/null || echo 'empty')"
 
-      - name: Restore Cache (Use dynamic key)
+      - name: Restore Cache
         uses: actions/cache@v3
+        if: steps.lock.outputs.locked == 'true'
         with:
           path: seen_links.txt
-          key: ${{ runner.os }}-seen-links-cache-${{ steps.cache-key.outputs.key }}
-          restore-keys: |
+          key: ${{ steps.cache-key.outputs.key }}
+          restore-keys:
             ${{ runner.os }}-seen-links-cache-
 
-      - name: Debug - Show seen_links.txt Before Script (Manter)  # (Opcional)
-        run: cat seen_links.txt || echo "seen_links.txt does not exist"
-
       - name: Run Script
+        if: steps.lock.outputs.locked == 'true'
         env:
           EMAIL_USER: ${{ secrets.EMAIL_USER }}
           EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
           TO_EMAIL: ${{ secrets.TO_EMAIL }}
         run: python3 pgrp.py
 
-      - name: Save Cache (Explicitamente após o script)  # (Importante!)
+      - name: Save Cache
         uses: actions/cache@v3
-        if: steps.cache-key.outputs.key != null
+        if: steps.lock.outputs.locked == 'true' && steps.cache-key.outputs.key != null
         with:
           path: seen_links.txt
-          key: ${{ runner.os }}-seen-links-cache-${{ steps.cache-key.outputs.key }}
+          key: ${{ steps.cache-key.outputs.key }}
 
-      - name: Debug - Show seen_links.txt After Script (Manter)  # (Opcional)
-        run: cat seen_links.txt || echo "seen_links.txt is empty"
+      - name: Release Lock
+        if: steps.lock.outputs.locked == 'true'
+        run: rm -f .lock
