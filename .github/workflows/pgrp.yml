@@ -28,18 +28,20 @@ jobs:
             touch seen_links.txt
           fi
 
-      - name: Generate Cache Key (Dynamically during execution)
-        run: echo "CACHE_KEY=seen-links-cache-$(sha256sum seen_links.txt | awk '{print $1}')" >> $GITHUB_ENV
+      # Gerar a chave do cache (dinamicamente durante a execução)
+      - name: Generate Cache Key
+        id: cache-key
+        run: echo "::set-output name=key::$(sha256sum seen_links.txt 2>/dev/null || echo 'empty')"
 
       - name: Restore Cache (Use dynamic key)
         uses: actions/cache@v3
         with:
           path: seen_links.txt
-          key: ${{ runner.os }}-seen-links-cache-${{ env.CACHE_KEY }}
+          key: ${{ runner.os }}-seen-links-cache-${{ steps.cache-key.outputs.key }}
           restore-keys: |
             ${{ runner.os }}-seen-links-cache-
 
-      - name: Debug - Show seen_links.txt Before Script (Manter)
+      - name: Debug - Show seen_links.txt Before Script (Manter)  # (Opcional)
         run: cat seen_links.txt || echo "seen_links.txt does not exist"
 
       - name: Run Script
@@ -49,5 +51,12 @@ jobs:
           TO_EMAIL: ${{ secrets.TO_EMAIL }}
         run: python3 pgrp.py
 
-      - name: Debug - Show seen_links.txt After Script (Manter)
+      - name: Save Cache (Explicitamente após o script)  # (Importante!)
+        uses: actions/cache@v3
+        if: steps.cache-key.outputs.key != null
+        with:
+          path: seen_links.txt
+          key: ${{ runner.os }}-seen-links-cache-${{ steps.cache-key.outputs.key }}
+
+      - name: Debug - Show seen_links.txt After Script (Manter)  # (Opcional)
         run: cat seen_links.txt || echo "seen_links.txt is empty"
