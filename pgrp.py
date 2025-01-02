@@ -169,6 +169,13 @@ def monitor_news():
     else:
         print("Nenhuma nova notícia para enviar e-mail.")
 
+
+# Teste direto da função get_article_content
+test_url = "https://www.pgdporto.pt/proc-web/news.jsf?newsItemId=2504"  # Substitua com uma URL válida de teste
+article_content = get_article_content(test_url)
+print(article_content)
+
+
 # Execução principal
 if __name__ == "__main__":
     monitor_news()
