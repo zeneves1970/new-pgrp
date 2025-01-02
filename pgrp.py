@@ -123,13 +123,18 @@ def get_article_content(url):
         if body_elem:
             # Captura de parágrafos e divs
             for elem in body_elem.find_all(["p", "div"], recursive=True):
-                body += elem.get_text(strip=True) + "\n"
+                body += elem.get_text(strip=True) + "\n\n"  # Adiciona espaçamento entre parágrafos
 
-            # Captura de listas com ordem preservada
+            # Captura de listas com a formatação correta
             for ul in body_elem.find_all('ul'):
                 body += "\n"  # Espaço entre listas para separação visual
                 for li in ul.find_all('li'):
-                    body += "- " + li.get_text(strip=True) + "\n"
+                    body += f"- {li.get_text(strip=True)}\n"  # Adiciona a lista com os itens no formato correto
+
+            # Adicionando informações adicionais caso haja
+            additional_info = body_elem.find_all("div", class_="additional-info")  # Se houver um bloco extra de informações
+            for info in additional_info:
+                body += f"{info.get_text(strip=True)}\n\n"
 
         if not body.strip():
             print(f"Conteúdo vazio após extração na URL: {url}")
