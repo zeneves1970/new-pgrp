@@ -4,6 +4,21 @@ from bs4 import BeautifulSoup
 import smtplib
 import urllib3
 
+# Função para extrair texto mantendo a ordem
+def extract_text_ordered(soup):
+    content = []
+    for element in soup.contents:
+        if element.name == 'div':  # Para <div>
+            content.append(element.get_text(strip=True))
+        elif element.name == 'ul':  # Para listas não ordenadas
+            for li in element.find_all('li'):
+                content.append(li.get_text(strip=True))
+        elif element.name == 'ol':  # Para listas ordenadas
+            for li in element.find_all('li'):
+                content.append(li.get_text(strip=True))
+    return "\n".join(content)
+
+
 # Suprime avisos sobre SSL
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
@@ -116,29 +131,9 @@ def get_article_content(url):
             [elem.get_text(strip=True) for elem in summary_elem.find_all(["p", "div"], recursive=True)]
         ) if summary_elem else "Resumo não encontrado."
 
-        # Extrair corpo da notícia, incluindo listas
+        # Extrair corpo da notícia
         body_elem = soup.find("div", class_="news-detail-body")
-        body = ""
-        
-        if body_elem:
-            # Captura de parágrafos e divs
-            for elem in body_elem.find_all(["p", "div"], recursive=True):
-                body += elem.get_text(strip=True) + "\n\n"  # Adiciona espaçamento entre parágrafos
-
-            # Captura de listas com a formatação correta
-            for ul in body_elem.find_all('ul'):
-                body += "\n"  # Espaço entre listas para separação visual
-                for li in ul.find_all('li'):
-                    body += f"- {li.get_text(strip=True)}\n"  # Adiciona a lista com os itens no formato correto
-
-            # Adicionando informações adicionais caso haja
-            additional_info = body_elem.find_all("div", class_="additional-info")  # Se houver um bloco extra de informações
-            for info in additional_info:
-                body += f"{info.get_text(strip=True)}\n\n"
-
-        if not body.strip():
-            print(f"Conteúdo vazio após extração na URL: {url}")
-            return "Conteúdo vazio."
+        body = extract_text_ordered(body_elem) if body_elem else "Conteúdo vazio."
 
         # Montar o conteúdo final do e-mail
         article_content = f"""
