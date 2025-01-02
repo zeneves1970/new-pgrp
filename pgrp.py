@@ -4,18 +4,18 @@ from bs4 import BeautifulSoup
 import smtplib
 import urllib3
 
-# Função para extrair texto mantendo a ordem
+# Função para extrair texto mantendo a ordem, com formatação para listas
 def extract_text_ordered(soup):
     content = []
     for element in soup.contents:
         if element.name == 'div':  # Para <div>
             content.append(element.get_text(strip=True))
         elif element.name == 'ul':  # Para listas não ordenadas
-            for li in element.find_all('li'):
-                content.append(li.get_text(strip=True))
+            for li in element.find_all('li', recursive=False):
+                content.append(f"- {li.get_text(strip=True)}")
         elif element.name == 'ol':  # Para listas ordenadas
-            for li in element.find_all('li'):
-                content.append(li.get_text(strip=True))
+            for li in element.find_all('li', recursive=False):
+                content.append(f"- {li.get_text(strip=True)}")
     return "\n".join(content)
 
 
