@@ -116,11 +116,23 @@ def get_article_content(url):
             [elem.get_text(strip=True) for elem in summary_elem.find_all(["p", "div"], recursive=True)]
         ) if summary_elem else "Resumo não encontrado."
 
-        # Extrair corpo da notícia
+        # Extrair corpo da notícia, incluindo listas
         body_elem = soup.find("div", class_="news-detail-body")
-        body = " ".join(
-            [elem.get_text(strip=True) for elem in body_elem.find_all(["p", "div"], recursive=True)]
-        ) if body_elem else "Conteúdo não encontrado."
+        body = ""
+        
+        if body_elem:
+            # Captura de parágrafos e divs
+            for elem in body_elem.find_all(["p", "div"], recursive=True):
+                body += elem.get_text(strip=True) + "\n"
+
+            # Captura de listas
+            for ul in body_elem.find_all('ul'):
+                for li in ul.find_all('li'):
+                    body += "- " + li.get_text(strip=True) + "\n"
+
+        if not body.strip():
+            print(f"Conteúdo vazio após extração na URL: {url}")
+            return "Conteúdo vazio."
 
         # Montar o conteúdo final do e-mail
         article_content = f"""
@@ -128,10 +140,6 @@ def get_article_content(url):
         {summary}\n
         {body}
         """
-
-        if not body.strip():
-            print(f"Conteúdo vazio após extração na URL: {url}")
-            return "Conteúdo vazio."
 
         return article_content
     except Exception as e:
