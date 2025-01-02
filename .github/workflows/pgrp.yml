@@ -5,65 +5,76 @@ on:
     branches:
       - main
   schedule:
-    - cron: "*/15 * * * *"
+    - cron: "*/15 * * * *"  # Executar a cada 15 minutos
 
 jobs:
   process:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v2
+    - name: Checkout Repository
+      uses: actions/checkout@v2
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.x'
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.x'
 
-      - name: Install dependencies
-        run: python -m pip install --upgrade pip && python -m pip install -r requirements.txt
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
 
-      - name: Ensure seen_links.txt Exists
-        run: touch seen_links.txt
+    # Certifique-se de que seen_links.txt existe
+    - name: Ensure seen_links.txt Exists
+      run: |
+        if [ ! -f seen_links.txt ]; then
+          touch seen_links.txt
+        fi
 
-      - name: Acquire Lock
-        id: lock
-        run: |
-          if [[ ! -f .lock ]]; then
-            touch .lock
-            echo "::set-output name=locked::true"
-          else
-            echo "::set-output name=locked::false"
-          fi
+    # Gerar chave de cache dinâmica
+    - name: Generate Cache Key
+      id: cache-key
+      run: |
+        key=$(sha256sum seen_links.txt | awk '{print $1}')
+        echo "key=$key" >> $GITHUB_ENV
 
-      - name: Generate Cache Key
-        id: cache-key
-        if: steps.lock.outputs.locked == 'true'
-        run: echo "::set-output name=key::${{ runner.os }}-seen-links-cache-$(sha256sum seen_links.txt 2>/dev/null || echo 'empty')"
+    # Restaurar cache
+    - name: Restore Cache
+      uses: actions/cache@v3
+      with:
+        path: seen_links.txt
+        key: ${{ runner.os }}-seen-links-cache-${{ env.key }}
+        restore-keys: |
+          ${{ runner.os }}-seen-links-cache-
 
-      - name: Restore Cache
-        uses: actions/cache@v3
-        if: steps.lock.outputs.locked == 'true'
-        with:
-          path: seen_links.txt
-          key: ${{ steps.cache-key.outputs.key }}
-          restore-keys:
-            ${{ runner.os }}-seen-links-cache-
+    # Debug: Verificar o conteúdo do arquivo antes
+    - name: Debug - Show seen_links.txt Before Script
+      run: cat seen_links.txt || echo "seen_links.txt does not exist"
 
-      - name: Run Script
-        if: steps.lock.outputs.locked == 'true'
-        env:
-          EMAIL_USER: ${{ secrets.EMAIL_USER }}
-          EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
-          TO_EMAIL: ${{ secrets.TO_EMAIL }}
-        run: python3 pgrp.py
+    # Executar o script Python
+    - name: Run Script
+      env:
+        EMAIL_USER: ${{ secrets.EMAIL_USER }}
+        EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
+        TO_EMAIL: ${{ secrets.TO_EMAIL }}
+      run: python3 pgrp.py
 
-      - name: Save Cache
-        uses: actions/cache@v3
-        if: steps.lock.outputs.locked == 'true' && steps.cache-key.outputs.key != null
-        with:
-          path: seen_links.txt
-          key: ${{ steps.cache-key.outputs.key }}
+    # Debug: Verificar o conteúdo do arquivo após o script
+    - name: Debug - Show seen_links.txt After Script
+      run: cat seen_links.txt || echo "seen_links.txt is empty"
 
-      - name: Release Lock
-        if: steps.lock.outputs.locked == 'true'
-        run: rm -f .lock
+    # Gerar novo hash para seen_links.txt
+    - name: Generate New Cache Key
+      id: new-cache-key
+      run: |
+        new_key=$(sha256sum seen_links.txt | awk '{print $1}')
+        echo "new_key=$new_key" >> $GITHUB_ENV
+
+    # Salvar cache se houve alteração no arquivo
+    - name: Save Updated Cache
+      if: env.key != env.new_key
+      uses: actions/cache@v3
+      with:
+        path: seen_links.txt
+        key: ${{ runner.os }}-seen-links-cache-${{ env.new_key }}
