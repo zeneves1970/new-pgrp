@@ -48,7 +48,7 @@ def save_seen_links(seen_links):
 
 # Função para enviar uma notificação por e-mail
 def send_email_notification(article_content):
-    subject = "Nova notícia detectada!"
+    subject = "Novo comunicado da PGRP!"
 
     email_text = f"""\
 From: {EMAIL_USER}
