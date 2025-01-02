@@ -125,8 +125,9 @@ def get_article_content(url):
             for elem in body_elem.find_all(["p", "div"], recursive=True):
                 body += elem.get_text(strip=True) + "\n"
 
-            # Captura de listas
+            # Captura de listas com ordem preservada
             for ul in body_elem.find_all('ul'):
+                body += "\n"  # Espaço entre listas para separação visual
                 for li in ul.find_all('li'):
                     body += "- " + li.get_text(strip=True) + "\n"
 
