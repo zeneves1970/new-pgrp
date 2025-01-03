@@ -28,7 +28,7 @@ EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD")  # Recupera do Secret
 TO_EMAIL = os.getenv("TO_EMAIL")  # Recupera do Secret
 
 # URL da página a ser monitorada
-BASE_URL = "https://www.noticiasdeaveiro.pt/ultimos-artigos/"
+BASE_URL = "https://www.pgdporto.pt/proc-web/"
 URL = f"{BASE_URL}"  # Página principal
 SEEN_LINKS_FILE = "seen_links.txt"  # Nome do arquivo para armazenar links já vistos
 
@@ -103,7 +103,7 @@ def get_news_links(url):
         # Ajuste para criar a URL completa
         for a_tag in soup.find_all("a", href=True):
             if "news.jsf" in a_tag['href']:  # Apenas links de notícias relevantes
-                full_link = f"https://www.noticiasdeaveiro.pt/{a_tag['href']}"  # Monta a URL completa
+                full_link = f"https://www.pgdporto.pt/proc-web/{a_tag['href']}"  # Monta a URL completa
                 links.add(full_link)
         
         print(f"Links encontrados: {links}")
@@ -174,4 +174,3 @@ def monitor_news():
 # Execução principal
 if __name__ == "__main__":
     monitor_news()
-
