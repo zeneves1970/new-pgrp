@@ -33,11 +33,6 @@ BASE_URL = "https://www.pgdporto.pt/proc-web/"
 URL = f"{BASE_URL}"  # Página principal
 SEEN_LINKS_FILE = "seen_links.txt"  # Nome do arquivo para armazenar links já vistos
 
-headers = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36"
-}
-
-response = requests.get(url, headers=headers, verify=False)
 
 # Função para carregar links já vistos de um arquivo
 def load_seen_links():
@@ -91,10 +86,13 @@ Content-Transfer-Encoding: 8bit
 
 
 def get_news_links(url):
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36"
+    }
     retries = 3  # Tentativas de conexão
     for attempt in range(retries):
         try:
-            response = requests.get(url, verify=False, timeout=10)  # timeout de 10 segundos
+            response = requests.get(url, headers=headers, verify=False, timeout=10)  # Adicionando o cabeçalho User-Agent
             if response.status_code == 200:
                 break  # Se a conexão for bem-sucedida, sai do loop
         except requests.exceptions.RequestException as e:
@@ -112,6 +110,7 @@ def get_news_links(url):
             full_link = f"https://www.pgdporto.pt/proc-web/{a_tag['href']}"
             links.add(full_link)
     return links
+
 
 def get_article_content(url):
     try:
