@@ -4,13 +4,6 @@ from bs4 import BeautifulSoup
 import smtplib
 import urllib3
 
-# Teste de conectividade com o servidor
-try:
-    response = requests.get('https://www.pgdporto.pt', verify=False, timeout=10)
-    print(f"Resposta do servidor: {response.status_code}")
-except requests.exceptions.RequestException as e:
-    print(f"Erro ao acessar o site: {e}")
-
 # Função para extrair texto mantendo a ordem, com formatação para listas
 def extract_text_ordered(soup):
     content = []
