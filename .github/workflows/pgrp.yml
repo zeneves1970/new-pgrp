@@ -25,10 +25,21 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
 
+    # Baixar o banco de dados SQLite do Dropbox
+    - name: Download SQLite Database from Dropbox
+      run: |
+        curl -L -o seen_links.db https://www.dropbox.com/s/<your-db-id>/seen_links.db?dl=1
+        echo "Banco de dados baixado do Dropbox."
+
     # Debug: Verificar o conteúdo do banco de dados antes do script
     - name: Debug - Show Database Content Before Script
       run: |
         sqlite3 seen_links.db "SELECT * FROM links LIMIT 5;"
+
+    # Inicializar banco de dados se necessário
+    - name: Initialize Database
+      run: |
+        python3 -c "import sqlite3; conn = sqlite3.connect('seen_links.db'); cursor = conn.cursor(); cursor.execute('CREATE TABLE IF NOT EXISTS links (link TEXT PRIMARY KEY)'); conn.commit(); conn.close()"
 
     # Executar o script Python
     - name: Run Script
@@ -36,7 +47,7 @@ jobs:
         EMAIL_USER: ${{ secrets.EMAIL_USER }}
         EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
         TO_EMAIL: ${{ secrets.TO_EMAIL }}
-        DROPBOX_ACCESS_TOKEN: ${{ secrets.DROPBOX_ACCESS_TOKEN }}  # Usar o access_token diretamente
+        DROPBOX_ACCESS_TOKEN: ${{ secrets.DROPBOX_ACCESS_TOKEN }}
       run: python3 pgrp.py
 
     # Debug: Verificar o conteúdo do banco de dados após o script
