@@ -207,8 +207,8 @@ def monitor_news():
             if title and url:
                 send_email_notification(get_article_content(link))
         save_seen_links(new_links)
-    except Exception as e:
-                print(f"Erro ao enviar e-mail: {e}")
+    else:
+        print(f"Erro ao enviar e-mail: {e}")
     
     upload_db_to_dropbox()  # Envia o banco de dados atualizado para o Dropbox
 
