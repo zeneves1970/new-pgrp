@@ -25,12 +25,6 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
 
-    - name: Verificar conectividade via HTTPS (porta 443)
-      run: |
-         curl -I https://www.pgdporto.pt || echo "Falha ao acessar via HTTPS"
-
-
-
     - name: Test DNS resolution
       run: |
         nslookup www.pgdporto.pt || dig www.pgdporto.pt
