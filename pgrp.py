@@ -113,8 +113,11 @@ def get_news_links(url):
 
 
 def get_article_content(url):
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36"
+    }
     try:
-        response = requests.get(url, verify=False)
+        response = requests.get(url, headers=headers, verify=False)  # Adicionando o cabeçalho User-Agent
         if response.status_code != 200:
             print(f"Erro ao acessar a notícia: {response.status_code}")
             return "Erro ao acessar a notícia."
@@ -146,6 +149,7 @@ def get_article_content(url):
     except Exception as e:
         print(f"Erro ao processar a notícia: {e}")
         return "Erro ao processar a notícia."
+
 
 
 def monitor_news():
