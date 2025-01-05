@@ -99,10 +99,10 @@ def save_seen_links_pgrp(new_links):
     conn.close()
     print("[DEBUG] Banco de dados atualizado com novos links.")
 
-# Função para buscar links de notícias da URL fornecida
 def get_news_links(url):
     try:
-        response = requests.get(url, headers=HEADERS, verify=False, timeout=(60,120))  # Aumentando o tempo de timeout
+        # Adicionando 'verify=False' para desabilitar SSL e timeout
+        response = requests.get(url, headers=HEADERS, verify=False, timeout=30)  # Desabilita SSL e define timeout
         if response.status_code != 200:
             print(f"[ERRO] Erro ao acessar a página: {response.status_code}")
             return set()
@@ -110,7 +110,7 @@ def get_news_links(url):
         soup = BeautifulSoup(response.content, 'html.parser')
         links = set()
         for a_tag in soup.find_all("a", href=True):
-            if "news.jsf" in a_tag['href']:  # Apenas links de notícias relevantes
+            if "news.jsf" in a_tag['href']:
                 full_link = urljoin(BASE_URL, a_tag['href'])
                 links.add(full_link)
 
