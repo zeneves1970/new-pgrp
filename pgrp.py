@@ -7,10 +7,20 @@ import urllib3
 import dropbox
 from dropbox.exceptions import AuthError
 
+# Configurações
+DB_NAME = "seen_links_pgrp.db"
+EMAIL_USER = os.getenv("EMAIL_USER")  # Recupera do Secret
+EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD")  # Recupera do Secret
+TO_EMAIL = os.getenv("TO_EMAIL")  # Recupera do Secret
+DROPBOX_ACCESS_TOKEN = os.getenv("DROPBOX_ACCESS_TOKEN")  # Agora usa o access_token diretamente
+BASE_URL = "https://www.pgdporto.pt/proc-web/"
+URL = f"{BASE_URL}"  # Página principal
+
+
 # Função para criar a tabela no banco de dados SQLite
 def initialize_db():
     """Cria o banco de dados e a tabela de links se não existirem."""
-    conn = sqlite3.connect("seen_links_pgrp.db")
+    conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS links (
@@ -19,66 +29,85 @@ def initialize_db():
     """)
     conn.commit()
     conn.close()
+    print(f"[DEBUG] Banco de dados '{DB_NAME}' criado com sucesso.")
+
+# Garante que o banco de dados existe antes de qualquer operação
+def ensure_db_exists():
+    if not os.path.exists(DB_NAME):
+        print(f"[DEBUG] Banco de dados '{DB_NAME}' não encontrado localmente. Criando um novo.")
+        initialize_db()
 
 # Função para conectar ao Dropbox
 def connect_to_dropbox():
     try:
         dbx = dropbox.Dropbox(DROPBOX_ACCESS_TOKEN)
-        print("Conectado ao Dropbox com sucesso.")
+        print("[DEBUG] Conectado ao Dropbox com sucesso.")
         return dbx
     except AuthError as e:
-        print(f"Erro de autenticação no Dropbox: {e}")
+        print(f"[ERRO] Erro de autenticação no Dropbox: {e}")
         return None
+
+# Função para baixar o banco de dados do Dropbox
+def download_db_from_dropbox(dbx):
+    try:
+        metadata, res = dbx.files_download(f"/{DB_NAME}")
+        with open(DB_NAME, "wb") as f:
+            f.write(res.content)
+        print("[DEBUG] Banco de dados baixado do Dropbox com sucesso.")
+    except dropbox.exceptions.ApiError as e:
+        if e.error.is_path() and e.error.get_path().is_not_found():
+            print("[DEBUG] Banco de dados não encontrado no Dropbox. Criando um novo.")
+        else:
+            print(f"[ERRO] Falha ao baixar banco de dados: {e}")
 
 # Função para subir o banco de dados para o Dropbox
 def upload_db_to_dropbox(dbx):
     try:
-        with open("seen_links_pgrp.db", "rb") as f:
-            dbx.files_upload(f.read(), "/Apps/monitor_pgrp/seen_links_pgrp.db", mode=dropbox.files.WriteMode.overwrite)
-        print("Banco de dados enviado para o Dropbox com sucesso.")
+        with open(DB_NAME, "rb") as f:
+            dbx.files_upload(f.read(), f"/{DB_NAME}", mode=dropbox.files.WriteMode.overwrite)
+        print("[DEBUG] Banco de dados enviado para o Dropbox com sucesso.")
     except Exception as e:
-        print(f"Erro ao enviar o banco de dados para o Dropbox: {e}")
+        print(f"[ERRO] Erro ao enviar o banco de dados para o Dropbox: {e}")
 
-# Função para carregar links já vistos de um banco de dados SQLite
-def load_seen_links(dbx):
+# Função para carregar links já vistos do banco de dados
+def load_seen_links():
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+    cursor.execute("SELECT link FROM links")
+    links = {row[0] for row in cursor.fetchall()}
+    conn.close()
+    print(f"[DEBUG] Links carregados do banco de dados: {links}")
+    return links
+
+# Função para salvar novos links no banco de dados
+def save_seen_links(seen_links):
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+    cursor.executemany("INSERT OR IGNORE INTO links (link) VALUES (?)", [(link,) for link in seen_links])
+    conn.commit()
+    conn.close()
+    print("[DEBUG] Banco de dados atualizado com novos links.")
+
+# Função para buscar links de notícias da URL fornecida
+def get_news_links(url):
     try:
-        # Se o banco de dados não existir localmente, crie-o
-        if not os.path.exists("seen_links_pgrp.db"):
-            initialize_db()
+        response = requests.get(url, verify=False)  # Ignora SSL
+        if response.status_code != 200:
+            print(f"[ERRO] Erro ao acessar a página: {response.status_code}")
+            return set()
         
-        # Conectar ao banco de dados SQLite
-        conn = sqlite3.connect('seen_links_pgrp.db')
-        cursor = conn.cursor()
-
-        # Carregar links já vistos
-        cursor.execute("SELECT link FROM links")
-        links = {row[0] for row in cursor.fetchall()}
-        print(f"Links carregados do banco de dados: {links}")
-        conn.close()
+        soup = BeautifulSoup(response.content, 'html.parser')
+        links = set()
+        for a_tag in soup.find_all("a", href=True):
+            if "news.jsf" in a_tag['href']:  # Apenas links de notícias relevantes
+                full_link = f"{BASE_URL}{a_tag['href']}"
+                links.add(full_link)
+        
+        print(f"[DEBUG] Links encontrados: {links}")
         return links
     except Exception as e:
-        print(f"Erro ao carregar links do banco de dados: {e}")
+        print(f"[ERRO] Falha ao buscar links: {e}")
         return set()
-
-# Função para salvar os links no banco de dados SQLite
-def save_seen_links(seen_links, dbx):
-    try:
-        # Conectar ao banco de dados SQLite
-        conn = sqlite3.connect('seen_links_pgrp.db')
-        cursor = conn.cursor()
-
-        # Inserir novos links no banco de dados
-        for link in seen_links:
-            cursor.execute("INSERT OR IGNORE INTO links (link) VALUES (?)", (link,))
-        
-        conn.commit()
-        conn.close()
-        print("Banco de dados atualizado com novos links.")
-
-        # Subir o banco de dados atualizado para o Dropbox
-        upload_db_to_dropbox(dbx)
-    except Exception as e:
-        print(f"Erro ao salvar links no banco de dados: {e}")
 
 # Função para enviar uma notificação por e-mail
 def send_email_notification(article_content):
