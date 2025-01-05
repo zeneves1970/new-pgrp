@@ -24,18 +24,27 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
+
+    # Adicionando etapa de teste de conectividade com o site
+    - name: Test Connectivity to PGD Porto
+      run: |
+        echo "Testando conectividade com o site www.pgdporto.pt"
+        curl -I https://www.pgdporto.pt || echo "Falha na conectividade com o site"
+
     # Certifique-se de que seen_links.txt existe
     - name: Ensure seen_links.txt Exists
       run: |
         if [ ! -f seen_links.txt ]; then
           touch seen_links.txt
         fi
+
     # Gerar chave de cache dinâmica
     - name: Generate Cache Key
       id: cache-key
       run: |
         key=$(sha256sum seen_links.txt | awk '{print $1}')
         echo "key=$key" >> $GITHUB_ENV
+
     # Restaurar cache
     - name: Restore Cache
       uses: actions/cache@v3
@@ -44,6 +53,7 @@ jobs:
         key: ${{ runner.os }}-seen-links-cache-${{ env.key }}
         restore-keys: |
           ${{ runner.os }}-seen-links-cache-
+
     # Debug: Verificar o conteúdo do arquivo antes
     - name: Debug - Show seen_links.txt Before Script
       run: cat seen_links.txt || echo "seen_links.txt does not exist"
@@ -66,6 +76,7 @@ jobs:
       run: |
         new_key=$(sha256sum seen_links.txt | awk '{print $1}')
         echo "new_key=$new_key" >> $GITHUB_ENV
+
     # Salvar cache se houve alteração no arquivo
     - name: Save Updated Cache
       if: env.key != env.new_key
