@@ -25,17 +25,6 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
 
-    # Baixar o banco de dados SQLite do Dropbox
-    - name: Download SQLite Database from Dropbox
-      run: |
-        curl -L -o seen_links_pgrp.db https://www.dropbox.com/s/abc123xyz/seen_links_pgrp.db?dl=1
-        echo "Banco de dados baixado do Dropbox."
-
-    # Debug: Verificar o conteúdo do banco de dados antes do script
-    - name: Debug - Show Database Content Before Script
-      run: |
-        sqlite3 seen_links_pgrp.db "SELECT * FROM links LIMIT 5;"
-
     # Criar banco de dados SQLite se não existir
     - name: Create SQLite Database if Not Exists
       run: |
@@ -48,6 +37,11 @@ jobs:
             conn.close(); \
         except sqlite3.DatabaseError as e: \
             print(f'Erro ao criar banco de dados: {e}')"
+
+    # Debug: Verificar o conteúdo do banco de dados antes do script
+    - name: Debug - Show Database Content Before Script
+      run: |
+        sqlite3 seen_links_pgrp.db "SELECT * FROM links LIMIT 5;"
 
     # Executar o script Python
     - name: Run Script
