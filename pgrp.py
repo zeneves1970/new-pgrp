@@ -1,16 +1,16 @@
 import os
-import requests
 import sqlite3
+import requests
 from bs4 import BeautifulSoup
 import smtplib
 import urllib3
 import dropbox
 from dropbox.exceptions import AuthError
 
-# Função para inicializar o banco de dados
+# Função para criar a tabela no banco de dados SQLite
 def initialize_db():
     """Cria o banco de dados e a tabela de links se não existirem."""
-    conn = sqlite3.connect("seen_links.db")
+    conn = sqlite3.connect("seen_links_pgrp.db")
     cursor = conn.cursor()
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS links (
@@ -23,39 +23,51 @@ def initialize_db():
 # Função para conectar ao Dropbox
 def connect_to_dropbox():
     try:
-        dbx = dropbox.Dropbox(os.getenv("DROPBOX_ACCESS_TOKEN"))
+        dbx = dropbox.Dropbox(DROPBOX_ACCESS_TOKEN)
         print("Conectado ao Dropbox com sucesso.")
         return dbx
     except AuthError as e:
         print(f"Erro de autenticação no Dropbox: {e}")
         return None
 
-# Função para baixar o banco de dados SQLite do Dropbox
-def download_db_from_dropbox(dbx):
+# Função para subir o banco de dados para o Dropbox
+def upload_db_to_dropbox(dbx):
     try:
-        with open("seen_links.db", "wb") as f:
-            metadata, res = dbx.files_download(path="/seen_links.db")
-            f.write(res.content)
-        print("Banco de dados baixado com sucesso.")
+        with open("seen_links_pgrp.db", "rb") as f:
+            dbx.files_upload(f.read(), "/Apps/monitor_pgrp/seen_links_pgrp.db", mode=dropbox.files.WriteMode.overwrite)
+        print("Banco de dados enviado para o Dropbox com sucesso.")
     except Exception as e:
-        print(f"Erro ao baixar banco de dados: {e}")
+        print(f"Erro ao enviar o banco de dados para o Dropbox: {e}")
 
-# Função para carregar links já vistos do banco de dados
-def load_seen_links():
-    """Carrega links do banco de dados SQLite."""
-    conn = sqlite3.connect('seen_links.db')
-    cursor = conn.cursor()
-    cursor.execute("SELECT link FROM links")
-    links = {row[0] for row in cursor.fetchall()}
-    conn.close()
-    return links
-
-# Função para salvar links no banco de dados SQLite
-def save_seen_links(seen_links, dbx):
+# Função para carregar links já vistos de um banco de dados SQLite
+def load_seen_links(dbx):
     try:
-        conn = sqlite3.connect('seen_links.db')
+        # Se o banco de dados não existir localmente, crie-o
+        if not os.path.exists("seen_links_pgrp.db"):
+            initialize_db()
+        
+        # Conectar ao banco de dados SQLite
+        conn = sqlite3.connect('seen_links_pgrp.db')
         cursor = conn.cursor()
 
+        # Carregar links já vistos
+        cursor.execute("SELECT link FROM links")
+        links = {row[0] for row in cursor.fetchall()}
+        print(f"Links carregados do banco de dados: {links}")
+        conn.close()
+        return links
+    except Exception as e:
+        print(f"Erro ao carregar links do banco de dados: {e}")
+        return set()
+
+# Função para salvar os links no banco de dados SQLite
+def save_seen_links(seen_links, dbx):
+    try:
+        # Conectar ao banco de dados SQLite
+        conn = sqlite3.connect('seen_links_pgrp.db')
+        cursor = conn.cursor()
+
+        # Inserir novos links no banco de dados
         for link in seen_links:
             cursor.execute("INSERT OR IGNORE INTO links (link) VALUES (?)", (link,))
         
@@ -68,12 +80,12 @@ def save_seen_links(seen_links, dbx):
     except Exception as e:
         print(f"Erro ao salvar links no banco de dados: {e}")
 
-# Função para enviar notificação por e-mail
+# Função para enviar uma notificação por e-mail
 def send_email_notification(article_content):
     subject = "Novo comunicado da PGRP!"
     email_text = f"""\
-From: {os.getenv("EMAIL_USER")}
-To: {os.getenv("TO_EMAIL")}
+From: {EMAIL_USER}
+To: {TO_EMAIL}
 Subject: {subject}
 Content-Type: text/plain; charset=utf-8
 Content-Transfer-Encoding: 8bit
@@ -83,11 +95,40 @@ Content-Transfer-Encoding: 8bit
     try:
         with smtplib.SMTP("smtp.gmail.com", 587) as server:
             server.starttls()
-            server.login(os.getenv("EMAIL_USER"), os.getenv("EMAIL_PASSWORD"))
-            server.sendmail(os.getenv("EMAIL_USER"), os.getenv("TO_EMAIL"), email_text.encode("utf-8"))
+            server.login(EMAIL_USER, EMAIL_PASSWORD)
+            server.sendmail(EMAIL_USER, TO_EMAIL, email_text.encode("utf-8"))
         print("E-mail enviado com sucesso.")
     except Exception as e:
         print("Erro ao enviar e-mail:", e)
+
+# Função para extrair texto mantendo a ordem, com formatação para listas
+def extract_text_ordered(soup):
+    content = []
+    for element in soup.contents:
+        if element.name == 'div':  # Para <div>
+            content.append(element.get_text(strip=True))
+        elif element.name == 'ul':  # Para listas não ordenadas
+            for li in element.find_all('li', recursive=False):
+                content.append(f"- {li.get_text(strip=True)}")
+        elif element.name == 'ol':  # Para listas ordenadas
+            for li in element.find_all('li', recursive=False):
+                content.append(f"- {li.get_text(strip=True)}")
+    return "\n".join(content)
+
+# Suprime avisos sobre SSL
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
+# Configurações do e-mail
+EMAIL_USER = os.getenv("EMAIL_USER")  # Recupera do Secret
+EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD")  # Recupera do Secret
+TO_EMAIL = os.getenv("TO_EMAIL")  # Recupera do Secret
+
+# URL da página a ser monitorada
+BASE_URL = "https://www.pgdporto.pt/proc-web/"
+URL = f"{BASE_URL}"  # Página principal
+
+# Configurações do Dropbox
+DROPBOX_ACCESS_TOKEN = os.getenv("DROPBOX_ACCESS_TOKEN")  # Agora usa o access_token diretamente
 
 # Função para buscar links de notícias da URL fornecida
 def get_news_links(url):
@@ -111,6 +152,7 @@ def get_news_links(url):
         print(f"Erro ao buscar links: {e}")
         return set()
 
+# Função para obter conteúdo de um artigo a partir de seu link
 def get_article_content(url):
     try:
         response = requests.get(url, verify=False)
@@ -140,34 +182,15 @@ def get_article_content(url):
         print(f"Erro ao processar a notícia: {e}")
         return "Erro ao processar a notícia."
 
-# Função para extrair texto formatado para listas
-def extract_text_ordered(soup):
-    content = []
-    for element in soup.contents:
-        if element.name == 'div':  # Para <div>
-            content.append(element.get_text(strip=True))
-        elif element.name == 'ul':  # Para listas não ordenadas
-            for li in element.find_all('li', recursive=False):
-                content.append(f"- {li.get_text(strip=True)}")
-        elif element.name == 'ol':  # Para listas ordenadas
-            for li in element.find_all('li', recursive=False):
-                content.append(f"- {li.get_text(strip=True)}")
-    return "\n".join(content)
-
 def monitor_news():
     dbx = connect_to_dropbox()
     if dbx is None:
         return
 
-    # Se o banco de dados não existir, baixe-o
-    if not os.path.exists("seen_links.db"):
-        download_db_from_dropbox(dbx)
+    seen_links = load_seen_links(dbx)
+    current_links = get_news_links(URL)
 
-    # Carregar links já vistos e buscar os links das notícias
-    seen_links = load_seen_links()
-    current_links = get_news_links("https://www.pgdporto.pt/proc-web/")
-
-    # Encontrando novos links
+    # Encontrando novos links que não foram vistos antes
     new_links = {link for link in current_links if link not in seen_links}
 
     if new_links:
@@ -186,5 +209,4 @@ def monitor_news():
 
 # Execução principal
 if __name__ == "__main__":
-    initialize_db()  # Inicializa o banco de dados e tabela
     monitor_news()
