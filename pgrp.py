@@ -7,6 +7,20 @@ import urllib3
 import dropbox
 from dropbox.exceptions import AuthError
 
+
+# Definição da função que inicializa o banco de dados e a tabela
+def initialize_db():
+    """Cria o banco de dados e a tabela de links se não existirem."""
+    conn = sqlite3.connect("seen_links.db")  # Substitua DB_NAME se estiver usando uma constante
+    cursor = conn.cursor()
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS links (
+        link TEXT PRIMARY KEY
+    )
+    """)
+    conn.commit()
+    conn.close()
+
 # Função para extrair texto mantendo a ordem, com formatação para listas
 def extract_text_ordered(soup):
     content = []
