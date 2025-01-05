@@ -25,14 +25,6 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
 
-    - name: Test DNS resolution
-      run: |
-        nslookup www.pgdporto.pt || dig www.pgdporto.pt
-    
-    - name: Ping the site
-      run: |
-        ping -c 4 www.pgdporto.pt || echo "Falha ao pingar o servidor"
-
 
     # Certifique-se de que seen_links.txt existe
     - name: Ensure seen_links.txt Exists
