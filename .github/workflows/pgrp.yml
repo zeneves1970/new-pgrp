@@ -25,15 +25,18 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
 
-    # Baixar o banco de dados SQLite do Dropbox (se existir)
-    - name: Download SQLite Database from Dropbox
+    # Criar banco de dados SQLite se não existir
+    - name: Create SQLite Database if Not Exists
       run: |
-        curl -L -o seen_links_pgrp.db https://www.dropbox.com/s/abc123xyz/seen_links_pgrp.db?dl=1 || echo "Banco de dados não encontrado no Dropbox."
-
-    # Inicializar banco de dados se necessário
-    - name: Initialize Database
-      run: |
-        python3 -c "import sqlite3; conn = sqlite3.connect('seen_links_pgrp.db'); cursor = conn.cursor(); cursor.execute('CREATE TABLE IF NOT EXISTS links (link TEXT PRIMARY KEY)'); conn.commit(); conn.close()"
+        python3 -c "import sqlite3; \
+          try: \
+            conn = sqlite3.connect('seen_links_pgrp.db'); \
+            cursor = conn.cursor(); \
+            cursor.execute('CREATE TABLE IF NOT EXISTS links (link TEXT PRIMARY KEY)'); \
+            conn.commit(); \
+            conn.close(); \
+          except sqlite3.DatabaseError as e: \
+            print(f'Erro ao criar banco de dados: {e}');"
 
     # Executar o script Python
     - name: Run Script
@@ -44,7 +47,7 @@ jobs:
         DROPBOX_ACCESS_TOKEN: ${{ secrets.DROPBOX_ACCESS_TOKEN }}
       run: python3 pgrp.py
 
-    # Subir o banco de dados atualizado de volta para o Dropbox
+    # Upload do banco de dados atualizado para o Dropbox
     - name: Upload Updated Database to Dropbox
       run: |
         curl -X POST https://content.dropboxapi.com/2/files/upload \
