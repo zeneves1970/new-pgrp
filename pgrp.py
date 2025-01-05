@@ -1,41 +1,33 @@
 import os
-import sqlite3
-import requests
-from bs4 import BeautifulSoup
-import smtplib
-import urllib3
 import dropbox
 from dropbox.exceptions import AuthError
+from bs4 import BeautifulSoup
+from urllib.parse import urljoin
+import sqlite3
+import smtplib
+import requests
+import urllib3
 
 # Configurações
-DB_NAME = "seen_links_pgrp.db"
-EMAIL_USER = os.getenv("EMAIL_USER")  # Recupera do Secret
-EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD")  # Recupera do Secret
-TO_EMAIL = os.getenv("TO_EMAIL")  # Recupera do Secret
-DROPBOX_ACCESS_TOKEN = os.getenv("DROPBOX_ACCESS_TOKEN")  # Agora usa o access_token diretamente
 BASE_URL = "https://www.pgdporto.pt/proc-web/"
+HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36",
+    "Accept-Language": "en-US,en;q=0.9",
+}
+EMAIL_USER = os.getenv("EMAIL_USER")
+EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD")
+TO_EMAIL = os.getenv("TO_EMAIL")
+DB_NAME = "seen_links_pgrp.db"
+DROPBOX_ACCESS_TOKEN = os.getenv("DROPBOX_ACCESS_TOKEN")  # Agora usa o access_token diretamente
 URL = f"{BASE_URL}"  # Página principal
+APP_KEY = os.getenv("APP_KEY")
+APP_SECRET = os.getenv("APP_SECRET")
 
+DROPBOX_PATH = f"/{DB_NAME}"
 
-# Função para criar a tabela no banco de dados SQLite
-def initialize_db():
-    """Cria o banco de dados e a tabela de links se não existirem."""
-    conn = sqlite3.connect(DB_NAME)
-    cursor = conn.cursor()
-    cursor.execute("""
-    CREATE TABLE IF NOT EXISTS links (
-        link TEXT PRIMARY KEY
-    )
-    """)
-    conn.commit()
-    conn.close()
-    print(f"[DEBUG] Banco de dados '{DB_NAME}' criado com sucesso.")
+# Configurar warnings do urllib
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-# Garante que o banco de dados existe antes de qualquer operação
-def ensure_db_exists():
-    if not os.path.exists(DB_NAME):
-        print(f"[DEBUG] Banco de dados '{DB_NAME}' não encontrado localmente. Criando um novo.")
-        initialize_db()
 
 # Função para conectar ao Dropbox
 def connect_to_dropbox():
@@ -48,26 +40,46 @@ def connect_to_dropbox():
         return None
 
 # Função para baixar o banco de dados do Dropbox
-def download_db_from_dropbox(dbx):
+def download_db_from_dropbox():
+    """Faz o download do banco de dados do Dropbox."""
     try:
-        metadata, res = dbx.files_download(f"/{DB_NAME}")
+        dbx = get_dropbox_client()
+        metadata, res = dbx.files_download(DROPBOX_PATH)
         with open(DB_NAME, "wb") as f:
             f.write(res.content)
-        print("[DEBUG] Banco de dados baixado do Dropbox com sucesso.")
+        print("[DEBUG] Banco de dados baixado do Dropbox.")
     except dropbox.exceptions.ApiError as e:
         if e.error.is_path() and e.error.get_path().is_not_found():
             print("[DEBUG] Banco de dados não encontrado no Dropbox. Criando um novo.")
         else:
             print(f"[ERRO] Falha ao baixar banco de dados: {e}")
+            
 
-# Função para subir o banco de dados para o Dropbox
-def upload_db_to_dropbox(dbx):
+# Função para enviar o banco de dados para o Dropbox
+def upload_db_to_dropbox():
+    """Faz o upload do banco de dados para o Dropbox."""
     try:
+        dbx = get_dropbox_client()
         with open(DB_NAME, "rb") as f:
-            dbx.files_upload(f.read(), f"/{DB_NAME}", mode=dropbox.files.WriteMode.overwrite)
-        print("[DEBUG] Banco de dados enviado para o Dropbox com sucesso.")
+            dbx.files_upload(f.read(), DROPBOX_PATH, mode=dropbox.files.WriteMode("overwrite"))
+        print("[DEBUG] Banco de dados enviado para o Dropbox.")
     except Exception as e:
-        print(f"[ERRO] Erro ao enviar o banco de dados para o Dropbox: {e}")
+        print(f"[ERRO] Falha ao enviar banco de dados: {e}")
+
+# Inicializa o banco de dados
+def initialize_db():
+    """Cria o banco de dados e a tabela de links."""
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS seen_links (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        link TEXT UNIQUE NOT NULL
+    )
+    """)
+    conn.commit()
+    conn.close()
+    
 
 # Função para carregar links já vistos do banco de dados
 def load_seen_links():
@@ -147,39 +159,7 @@ def extract_text_ordered(soup):
 # Suprime avisos sobre SSL
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-# Configurações do e-mail
-EMAIL_USER = os.getenv("EMAIL_USER")  # Recupera do Secret
-EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD")  # Recupera do Secret
-TO_EMAIL = os.getenv("TO_EMAIL")  # Recupera do Secret
 
-# URL da página a ser monitorada
-BASE_URL = "https://www.pgdporto.pt/proc-web/"
-URL = f"{BASE_URL}"  # Página principal
-
-# Configurações do Dropbox
-DROPBOX_ACCESS_TOKEN = os.getenv("DROPBOX_ACCESS_TOKEN")  # Agora usa o access_token diretamente
-
-# Função para buscar links de notícias da URL fornecida
-def get_news_links(url):
-    try:
-        response = requests.get(url, verify=False)  # Ignora SSL
-        if response.status_code != 200:
-            print(f"Erro ao acessar a página: {response.status_code}")
-            return []
-        
-        soup = BeautifulSoup(response.content, 'html.parser')
-        links = set()
-        
-        for a_tag in soup.find_all("a", href=True):
-            if "news.jsf" in a_tag['href']:  # Apenas links de notícias relevantes
-                full_link = f"https://www.pgdporto.pt/proc-web/{a_tag['href']}"
-                links.add(full_link)
-        
-        print(f"Links encontrados: {links}")
-        return links
-    except Exception as e:
-        print(f"Erro ao buscar links: {e}")
-        return set()
 
 # Função para obter conteúdo de um artigo a partir de seu link
 def get_article_content(url):
