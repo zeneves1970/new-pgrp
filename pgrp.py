@@ -101,8 +101,8 @@ def get_news_links(url):
     Retorna uma lista com os links completos encontrados.
     """
     try:
-        # Aumentar o timeout para 30 segundos
-        response = requests.get(url, verify=False, timeout=30)  # Ignora SSL e define timeout
+        # Aumentar o timeout para 10 segundos e desabilitar a verificação SSL
+        response = requests.get(url, verify=False, timeout=10)  # Ignora SSL e define timeout
         if response.status_code != 200:
             print(f"Erro ao acessar a página: {response.status_code}")
             return []
@@ -126,7 +126,8 @@ def get_news_links(url):
 
 def get_article_content(url):
     try:
-        response = requests.get(url, verify=False, timeout=30)
+        # Aumentar o timeout para 10 segundos e desabilitar a verificação SSL
+        response = requests.get(url, verify=False, timeout=10)
         if response.status_code != 200:
             print(f"Erro ao acessar a notícia: {response.status_code}")
             return "Erro ao acessar a notícia."
