@@ -25,11 +25,6 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
 
-    # Adicionando etapa de teste de conectividade com o site
-    - name: Test Connectivity to PGD Porto
-      run: |
-        echo "Testando conectividade com o site www.pgdporto.pt"
-        curl -I https://www.pgdporto.pt || echo "Falha na conectividade com o site"
 
     # Certifique-se de que seen_links.txt existe
     - name: Ensure seen_links.txt Exists
