@@ -1,9 +1,10 @@
 import os
+import sqlite3
 import requests
 from bs4 import BeautifulSoup
 import smtplib
-import sqlite3
 import urllib3
+import json
 
 # Função para extrair texto mantendo a ordem, com formatação para listas
 def extract_text_ordered(soup):
@@ -19,7 +20,6 @@ def extract_text_ordered(soup):
                 content.append(f"- {li.get_text(strip=True)}")
     return "\n".join(content)
 
-
 # Suprime avisos sobre SSL
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
@@ -31,50 +31,46 @@ TO_EMAIL = os.getenv("TO_EMAIL")  # Recupera do Secret
 # URL da página a ser monitorada
 BASE_URL = "https://www.pgdporto.pt/proc-web/"
 URL = f"{BASE_URL}"  # Página principal
-DB_FILE = "seen_links_pgrp.db"  # Banco de dados SQLite
+SEEN_LINKS_DB = "seen_links_pgrp.db"  # Nome do arquivo do banco de dados SQLite
 
-# Função para inicializar a tabela no banco de dados
-def initialize_db():
-    try:
-        conn = sqlite3.connect(DB_FILE)
-        c = conn.cursor()
-        # Criar tabela se não existir
-        c.execute('''CREATE TABLE IF NOT EXISTS seen_links (link TEXT UNIQUE)''')
-        conn.commit()
-        conn.close()
-        print("Banco de dados inicializado com sucesso.")
-    except Exception as e:
-        print(f"Erro ao inicializar banco de dados: {e}")
 
 # Função para carregar links já vistos do banco de dados
 def load_seen_links():
-    try:
-        conn = sqlite3.connect(DB_FILE)
-        c = conn.cursor()
-        c.execute("SELECT link FROM seen_links")
-        seen_links = {row[0] for row in c.fetchall()}
-        conn.close()
-        print(f"Links carregados do banco de dados: {seen_links}")
-        return seen_links
-    except Exception as e:
-        print(f"Erro ao carregar links do banco de dados: {e}")
-    return set()
+    conn = sqlite3.connect(SEEN_LINKS_DB)
+    cursor = conn.cursor()
 
-# Função para salvar os links já vistos no banco de dados
+    # Criar a tabela se não existir
+    cursor.execute('''
+    CREATE TABLE IF NOT EXISTS links (
+        url TEXT PRIMARY KEY
+    )''')
+    
+    cursor.execute("SELECT url FROM links")
+    rows = cursor.fetchall()
+    seen_links = {row[0] for row in rows}
+    conn.close()
+    
+    print(f"Links carregados do banco de dados: {seen_links}")
+    return seen_links
+
+
 def save_seen_links(seen_links):
-    try:
-        conn = sqlite3.connect(DB_FILE)
-        c = conn.cursor()
-        # Apagar todos os links existentes na tabela
-        c.execute("DELETE FROM seen_links")
-        # Inserir os links novos
-        for link in seen_links:
-            c.execute("INSERT INTO seen_links (link) VALUES (?)", (link,))
-        conn.commit()
-        conn.close()
-        print("Banco de dados atualizado com links novos.")
-    except Exception as e:
-        print(f"Erro ao salvar links no banco de dados: {e}")
+    conn = sqlite3.connect(SEEN_LINKS_DB)
+    cursor = conn.cursor()
+
+    # Criar a tabela se não existir
+    cursor.execute('''
+    CREATE TABLE IF NOT EXISTS links (
+        url TEXT PRIMARY KEY
+    )''')
+    
+    # Inserir novos links no banco de dados
+    cursor.executemany("INSERT OR IGNORE INTO links (url) VALUES (?)", [(link,) for link in seen_links])
+    conn.commit()
+    conn.close()
+    
+    print("Banco de dados atualizado com links novos.")
+
 
 # Função para enviar uma notificação por e-mail
 def send_email_notification(article_content):
@@ -106,7 +102,7 @@ def get_news_links(url):
     Retorna uma lista com os links completos encontrados.
     """
     try:
-        response = requests.get(url, verify=False)  # Ignora SSL
+        response = requests.get(url, verify=False, timeout=10)  # Ignora SSL e define timeout
         if response.status_code != 200:
             print(f"Erro ao acessar a página: {response.status_code}")
             return []
@@ -127,9 +123,10 @@ def get_news_links(url):
         print(f"Erro ao buscar links: {e}")
         return set()
 
+
 def get_article_content(url):
     try:
-        response = requests.get(url, verify=False)
+        response = requests.get(url, verify=False, timeout=10)
         if response.status_code != 200:
             print(f"Erro ao acessar a notícia: {response.status_code}")
             return "Erro ao acessar a notícia."
@@ -186,8 +183,42 @@ def monitor_news():
         print("Nenhuma nova notícia para enviar e-mail.")
 
 
+# Função para fazer upload do banco de dados para o Dropbox
+def upload_to_dropbox(file_path):
+    dropbox_access_token = os.getenv("DROPBOX_ACCESS_TOKEN")  # Acessar o token do Dropbox a partir das variáveis de ambiente
+
+    headers = {
+        "Authorization": f"Bearer {dropbox_access_token}",
+        "Content-Type": "application/octet-stream",
+    }
+
+    # Path no Dropbox onde o arquivo será salvo
+    dropbox_path = "/seen_links_pgrp.db"
+
+    with open(file_path, "rb") as file:
+        data = file.read()
+
+    # Request para upload do arquivo
+    response = requests.post(
+        "https://content.dropboxapi.com/2/files/upload",
+        headers={
+            **headers,
+            "Dropbox-API-Arg": json.dumps({
+                "path": dropbox_path,
+                "mode": "overwrite",  # Overwrite se o arquivo já existir
+                "autorename": True,
+            }),
+        },
+        data=data,
+    )
+
+    if response.status_code == 200:
+        print("Banco de dados enviado com sucesso para o Dropbox.")
+    else:
+        print(f"Erro ao fazer upload para o Dropbox: {response.status_code}, {response.text}")
+
+
 # Execução principal
 if __name__ == "__main__":
-    # Inicializa o banco de dados e a tabela
-    initialize_db()
     monitor_news()
+    upload_to_dropbox(SEEN_LINKS_DB)
