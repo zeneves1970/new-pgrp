@@ -1,7 +1,45 @@
-# Criar banco de dados SQLite se não existir
-- name: Create SQLite Database if Not Exists
-  run: |
-    python3 -c "
+name: Send Emails on New Links
+
+on:
+  push:
+    branches:
+      - main
+  schedule:
+    - cron: "*/15 * * * *"  # Executar a cada 15 minutos
+
+jobs:
+  process:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v2
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.x'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    # Baixar o banco de dados SQLite do Dropbox
+    - name: Download SQLite Database from Dropbox
+      run: |
+        curl -L -o seen_links_pgrp.db https://www.dropbox.com/s/abc123xyz/seen_links_pgrp.db?dl=1
+        echo "Banco de dados baixado do Dropbox."
+
+    # Debug: Verificar o conteúdo do banco de dados antes do script
+    - name: Debug - Show Database Content Before Script
+      run: |
+        sqlite3 seen_links_pgrp.db "SELECT * FROM links LIMIT 5;"
+
+    # Criar banco de dados SQLite se não existir
+    - name: Create SQLite Database if Not Exists
+      run: |
+        python3 -c "
 import sqlite3
 try:
     conn = sqlite3.connect('seen_links_pgrp.db')
@@ -12,3 +50,26 @@ try:
 except sqlite3.DatabaseError as e:
     print(f'Erro ao criar banco de dados: {e}')
     "
+
+    # Executar o script Python
+    - name: Run Script
+      env:
+        EMAIL_USER: ${{ secrets.EMAIL_USER }}
+        EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
+        TO_EMAIL: ${{ secrets.TO_EMAIL }}
+        DROPBOX_ACCESS_TOKEN: ${{ secrets.DROPBOX_ACCESS_TOKEN }}
+      run: python3 pgrp.py
+
+    # Debug: Verificar o conteúdo do banco de dados após o script
+    - name: Debug - Show Database Content After Script
+      run: |
+        sqlite3 seen_links_pgrp.db "SELECT * FROM links LIMIT 5;"
+
+    # Subir o banco de dados atualizado de volta para o Dropbox
+    - name: Upload Updated Database to Dropbox
+      run: |
+        curl -X POST https://content.dropboxapi.com/2/files/upload \
+          --header "Authorization: Bearer ${{ secrets.DROPBOX_ACCESS_TOKEN }}" \
+          --header "Dropbox-API-Arg: {\"path\": \"/seen_links_pgrp.db\",\"mode\": \"overwrite\",\"autorename\": true}" \
+          --data-binary @seen_links_pgrp.db
+        echo "Banco de dados atualizado no Dropbox."
