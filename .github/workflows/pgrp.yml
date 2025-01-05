@@ -25,32 +25,16 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
 
-    # Certifique-se de que seen_links.txt existe
-    - name: Ensure seen_links.txt Exists
+    # Baixar o banco de dados SQLite do Dropbox
+    - name: Download SQLite Database from Dropbox
       run: |
-        if [ ! -f seen_links.txt ]; then
-          touch seen_links.txt
-        fi
+        curl -L -o seen_links.db https://www.dropbox.com/s/<your-db-id>/seen_links.db?dl=1
+        echo "Banco de dados baixado do Dropbox."
 
-    # Gerar chave de cache dinâmica
-    - name: Generate Cache Key
-      id: cache-key
+    # Debug: Verificar o conteúdo do banco de dados antes do script
+    - name: Debug - Show Database Content Before Script
       run: |
-        key=$(sha256sum seen_links.txt | awk '{print $1}')
-        echo "key=$key" >> $GITHUB_ENV
-
-    # Restaurar cache
-    - name: Restore Cache
-      uses: actions/cache@v3
-      with:
-        path: seen_links.txt
-        key: ${{ runner.os }}-seen-links-cache-${{ env.key }}
-        restore-keys: |
-          ${{ runner.os }}-seen-links-cache-
-
-    # Debug: Verificar o conteúdo do arquivo antes
-    - name: Debug - Show seen_links.txt Before Script
-      run: cat seen_links.txt || echo "seen_links.txt does not exist"
+        sqlite3 seen_links.db "SELECT * FROM links LIMIT 5;"
 
     # Executar o script Python
     - name: Run Script
@@ -58,23 +42,21 @@ jobs:
         EMAIL_USER: ${{ secrets.EMAIL_USER }}
         EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
         TO_EMAIL: ${{ secrets.TO_EMAIL }}
+        DROPBOX_CLIENT_ID: ${{ secrets.DROPBOX_CLIENT_ID }}
+        DROPBOX_CLIENT_SECRET: ${{ secrets.DROPBOX_CLIENT_SECRET }}
+        DROPBOX_REFRESH_TOKEN: ${{ secrets.DROPBOX_REFRESH_TOKEN }}
       run: python3 pgrp.py
 
-    # Debug: Verificar o conteúdo do arquivo após o script
-    - name: Debug - Show seen_links.txt After Script
-      run: cat seen_links.txt || echo "seen_links.txt is empty"
-
-    # Gerar novo hash para seen_links.txt
-    - name: Generate New Cache Key
-      id: new-cache-key
+    # Debug: Verificar o conteúdo do banco de dados após o script
+    - name: Debug - Show Database Content After Script
       run: |
-        new_key=$(sha256sum seen_links.txt | awk '{print $1}')
-        echo "new_key=$new_key" >> $GITHUB_ENV
+        sqlite3 seen_links.db "SELECT * FROM links LIMIT 5;"
 
-    # Salvar cache se houve alteração no arquivo
-    - name: Save Updated Cache
-      if: env.key != env.new_key
-      uses: actions/cache@v3
-      with:
-        path: seen_links.txt
-        key: ${{ runner.os }}-seen-links-cache-${{ env.new_key }}
+    # Subir o banco de dados atualizado de volta para o Dropbox
+    - name: Upload Updated Database to Dropbox
+      run: |
+        curl -X POST https://content.dropboxapi.com/2/files/upload \
+          --header "Authorization: Bearer ${{ secrets.DROPBOX_ACCESS_TOKEN }}" \
+          --header "Dropbox-API-Arg: {\"path\": \"/seen_links.db\",\"mode\": \"overwrite\",\"autorename\": true}" \
+          --data-binary @seen_links.db
+        echo "Banco de dados atualizado no Dropbox."
