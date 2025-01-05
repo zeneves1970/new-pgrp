@@ -34,38 +34,16 @@ BASE_URL = "https://www.pgdporto.pt/proc-web/"
 URL = f"{BASE_URL}"  # Página principal
 
 # Configurações do Dropbox
-DROPBOX_CLIENT_ID = os.getenv("DROPBOX_CLIENT_ID")  # Recupera do Secret
-DROPBOX_CLIENT_SECRET = os.getenv("DROPBOX_CLIENT_SECRET")  # Recupera do Secret
-DROPBOX_REFRESH_TOKEN = os.getenv("DROPBOX_REFRESH_TOKEN")  # Recupera do Secret
-
-# Função para obter um novo access_token usando o refresh_token
-def refresh_access_token():
-    url = "https://api.dropboxapi.com/oauth2/token"
-    data = {
-        "grant_type": "refresh_token",
-        "refresh_token": DROPBOX_REFRESH_TOKEN,
-        "client_id": DROPBOX_CLIENT_ID,
-        "client_secret": DROPBOX_CLIENT_SECRET
-    }
-    response = requests.post(url, data=data)
-    if response.status_code == 200:
-        new_tokens = response.json()
-        access_token = new_tokens["access_token"]
-        print("Access token renovado com sucesso.")
-        return access_token
-    else:
-        print(f"Erro ao renovar access token: {response.status_code} - {response.text}")
-        return None
+DROPBOX_ACCESS_TOKEN = os.getenv("DROPBOX_ACCESS_TOKEN")  # Agora usa o access_token diretamente
 
 # Função para conectar ao Dropbox
 def connect_to_dropbox():
-    access_token = refresh_access_token()
-    if access_token:
-        dbx = dropbox.Dropbox(access_token)
+    try:
+        dbx = dropbox.Dropbox(DROPBOX_ACCESS_TOKEN)
         print("Conectado ao Dropbox com sucesso.")
         return dbx
-    else:
-        print("Erro ao conectar ao Dropbox.")
+    except AuthError as e:
+        print(f"Erro de autenticação no Dropbox: {e}")
         return None
 
 # Função para verificar se o banco de dados existe no Dropbox
