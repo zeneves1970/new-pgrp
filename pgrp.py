@@ -192,25 +192,37 @@ def get_article_content(url):
 
 def monitor_news():
     """Monitora o site e envia notificações para novos links."""
-    download_db_from_dropbox()  # Baixa o banco de dados antes de iniciar
+    try:
+        download_db_from_dropbox()  # Baixa o banco de dados antes de iniciar
+    except Exception as e:
+        print(f"[ERRO] Falha ao baixar banco de dados do Dropbox: {e}")
+        initialize_db()  # Cria o banco se ele não existe
+
     initialize_db()  # Certifica-se de que o banco está pronto
     seen_links_pgrp = load_seen_links_pgrp()
     current_links = get_news_links(BASE_URL)
-    
+
     # Encontrando novos links que não foram vistos antes
-    new_links = set(current_links) - seen_links
+    new_links = set(current_links) - seen_links_pgrp
 
     if new_links:
         print(f"[DEBUG] Novos links: {new_links}")
         for link in new_links:
-            title, url = get_article_title_and_url(link)
-            if title and url:
-                send_email_notification(get_article_content(link))
-        save_seen_links(new_links)
+            try:
+                article_content = get_article_content(link)
+                send_email_notification(article_content)
+            except Exception as e:
+                print(f"[ERRO] Falha ao processar e enviar notificação para o link {link}: {e}")
+
+        save_seen_links_pgrp(new_links)
     else:
-        print(f"Erro ao enviar e-mail: {e}")
-    
-    upload_db_to_dropbox()  # Envia o banco de dados atualizado para o Dropbox
+        print("[DEBUG] Nenhum novo link encontrado.")
+
+    try:
+        upload_db_to_dropbox()  # Envia o banco de dados atualizado para o Dropbox
+    except Exception as e:
+        print(f"[ERRO] Falha ao enviar banco de dados para o Dropbox: {e}")
+
 
 # Execução principal
 if __name__ == "__main__":
