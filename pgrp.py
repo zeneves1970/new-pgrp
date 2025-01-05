@@ -3,6 +3,7 @@ import requests
 from bs4 import BeautifulSoup
 import smtplib
 import urllib3
+import time
 
 # Função para extrair texto mantendo a ordem, com formatação para listas
 def extract_text_ordered(soup):
@@ -32,6 +33,11 @@ BASE_URL = "https://www.pgdporto.pt/proc-web/"
 URL = f"{BASE_URL}"  # Página principal
 SEEN_LINKS_FILE = "seen_links.txt"  # Nome do arquivo para armazenar links já vistos
 
+headers = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36"
+}
+
+response = requests.get(url, headers=headers, verify=False)
 
 # Função para carregar links já vistos de um arquivo
 def load_seen_links():
@@ -83,8 +89,6 @@ Content-Transfer-Encoding: 8bit
     except Exception as e:
         print("Erro ao enviar e-mail:", e)
 
-
-import time
 
 def get_news_links(url):
     retries = 3  # Tentativas de conexão
