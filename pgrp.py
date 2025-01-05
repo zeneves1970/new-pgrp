@@ -102,7 +102,7 @@ def save_seen_links_pgrp(new_links):
 # Função para buscar links de notícias da URL fornecida
 def get_news_links(url):
     try:
-        response = requests.get(url, headers=HEADERS, verify=False, timeout=30)  # Aumentando o tempo de timeout
+        response = requests.get(url, headers=HEADERS, verify=False, timeout=(60,120))  # Aumentando o tempo de timeout
         if response.status_code != 200:
             print(f"[ERRO] Erro ao acessar a página: {response.status_code}")
             return set()
