@@ -191,7 +191,6 @@ def get_article_content(url):
         return "Erro ao processar a notícia."
 
 def monitor_news():
-    def monitor_news():
     """Monitora o site e envia notificações para novos links."""
     download_db_from_dropbox()  # Baixa o banco de dados antes de iniciar
     initialize_db()  # Certifica-se de que o banco está pronto
