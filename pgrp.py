@@ -1,6 +1,3 @@
-
-Aqui está o script original
-
 import os
 import requests
 from bs4 import BeautifulSoup
