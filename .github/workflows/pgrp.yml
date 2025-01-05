@@ -28,18 +28,18 @@ jobs:
     # Baixar o banco de dados SQLite do Dropbox
     - name: Download SQLite Database from Dropbox
       run: |
-        curl -L -o seen_links.db https://www.dropbox.com/s/<your-db-id>/seen_links.db?dl=1
+        curl -L -o seen_links_pgrp.db https://www.dropbox.com/s/abc123xyz/seen_links_pgrp.db?dl=1
         echo "Banco de dados baixado do Dropbox."
 
     # Debug: Verificar o conteúdo do banco de dados antes do script
     - name: Debug - Show Database Content Before Script
       run: |
-        sqlite3 seen_links.db "SELECT * FROM links LIMIT 5;"
+        sqlite3 seen_links_pgrp.db "SELECT * FROM links LIMIT 5;"
 
     # Inicializar banco de dados se necessário
     - name: Initialize Database
       run: |
-        python3 -c "import sqlite3; conn = sqlite3.connect('seen_links.db'); cursor = conn.cursor(); cursor.execute('CREATE TABLE IF NOT EXISTS links (link TEXT PRIMARY KEY)'); conn.commit(); conn.close()"
+        python3 -c "import sqlite3; conn = sqlite3.connect('seen_links_pgrp.db'); cursor = conn.cursor(); cursor.execute('CREATE TABLE IF NOT EXISTS links (link TEXT PRIMARY KEY)'); conn.commit(); conn.close()"
 
     # Executar o script Python
     - name: Run Script
@@ -53,13 +53,13 @@ jobs:
     # Debug: Verificar o conteúdo do banco de dados após o script
     - name: Debug - Show Database Content After Script
       run: |
-        sqlite3 seen_links.db "SELECT * FROM links LIMIT 5;"
+        sqlite3 seen_links_pgrp.db "SELECT * FROM links LIMIT 5;"
 
     # Subir o banco de dados atualizado de volta para o Dropbox
     - name: Upload Updated Database to Dropbox
       run: |
         curl -X POST https://content.dropboxapi.com/2/files/upload \
           --header "Authorization: Bearer ${{ secrets.DROPBOX_ACCESS_TOKEN }}" \
-          --header "Dropbox-API-Arg: {\"path\": \"/seen_links.db\",\"mode\": \"overwrite\",\"autorename\": true}" \
-          --data-binary @seen_links.db
+          --header "Dropbox-API-Arg: {\"path\": \"/Apps/monitor_pgrp/seen_links_pgrp.db\",\"mode\": \"overwrite\",\"autorename\": true}" \
+          --data-binary @seen_links_pgrp.db
         echo "Banco de dados atualizado no Dropbox."
