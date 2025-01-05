@@ -196,7 +196,7 @@ def monitor_news():
     if dbx is None:
         return
 
-    seen_links = load_seen_links(dbx)
+    seen_links = load_seen_links()
     current_links = get_news_links(URL)
 
     # Encontrando novos links que não foram vistos antes
@@ -212,7 +212,7 @@ def monitor_news():
 
         # Atualiza o banco de dados após envio com os novos links
         seen_links.update(new_links)
-        save_seen_links(seen_links, dbx)
+        save_seen_links(seen_links)
     else:
         print("Nenhuma nova notícia para enviar e-mail.")
 
