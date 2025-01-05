@@ -25,16 +25,10 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
 
-    # Baixar o banco de dados SQLite do Dropbox
+    # Baixar o banco de dados SQLite do Dropbox (se existir)
     - name: Download SQLite Database from Dropbox
       run: |
-        curl -L -o seen_links_pgrp.db https://www.dropbox.com/s/abc123xyz/seen_links_pgrp.db?dl=1
-        echo "Banco de dados baixado do Dropbox."
-
-    # Debug: Verificar o conteúdo do banco de dados antes do script
-    - name: Debug - Show Database Content Before Script
-      run: |
-        sqlite3 seen_links_pgrp.db "SELECT * FROM links LIMIT 5;"
+        curl -L -o seen_links_pgrp.db https://www.dropbox.com/s/abc123xyz/seen_links_pgrp.db?dl=1 || echo "Banco de dados não encontrado no Dropbox."
 
     # Inicializar banco de dados se necessário
     - name: Initialize Database
@@ -49,11 +43,6 @@ jobs:
         TO_EMAIL: ${{ secrets.TO_EMAIL }}
         DROPBOX_ACCESS_TOKEN: ${{ secrets.DROPBOX_ACCESS_TOKEN }}
       run: python3 pgrp.py
-
-    # Debug: Verificar o conteúdo do banco de dados após o script
-    - name: Debug - Show Database Content After Script
-      run: |
-        sqlite3 seen_links_pgrp.db "SELECT * FROM links LIMIT 5;"
 
     # Subir o banco de dados atualizado de volta para o Dropbox
     - name: Upload Updated Database to Dropbox
