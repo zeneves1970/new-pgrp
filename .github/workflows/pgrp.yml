@@ -27,12 +27,12 @@ jobs:
 
 
     - name: Test DNS resolution
-  run: |
-    nslookup www.pgdporto.pt || dig www.pgdporto.pt
+      run: |
+        nslookup www.pgdporto.pt || dig www.pgdporto.pt
     
     - name: Ping the site
-  run: |
-    ping -c 4 www.pgdporto.pt || echo "Falha ao pingar o servidor"
+      run: |
+        ping -c 4 www.pgdporto.pt || echo "Falha ao pingar o servidor"
 
 
     # Certifique-se de que seen_links.txt existe
