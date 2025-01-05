@@ -72,7 +72,7 @@ def initialize_db():
     conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()
     cursor.execute("""
-    CREATE TABLE IF NOT EXISTS seen_links (
+    CREATE TABLE IF NOT EXISTS seen_links_pgrp (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         link TEXT UNIQUE NOT NULL
     )
@@ -82,20 +82,19 @@ def initialize_db():
     
 
 # Função para carregar links já vistos do banco de dados
-def load_seen_links():
+def load_seen_links_pgrp():
     conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()
-    cursor.execute("SELECT link FROM links")
+    cursor.execute("SELECT link FROM seen_links_pgrp")
     links = {row[0] for row in cursor.fetchall()}
     conn.close()
-    print(f"[DEBUG] Links carregados do banco de dados: {links}")
-    return links
+    return seen_links_pgrp
 
 # Função para salvar novos links no banco de dados
-def save_seen_links(seen_links):
+def save_seen_links_pgrp(new_links):
     conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()
-    cursor.executemany("INSERT OR IGNORE INTO links (link) VALUES (?)", [(link,) for link in seen_links])
+    cursor.executemany("INSERT OR IGNORE INTO seen_links_pgrp (link) VALUES (?)", [(link,) for link in new_links])
     conn.commit()
     conn.close()
     print("[DEBUG] Banco de dados atualizado com novos links.")
@@ -192,29 +191,27 @@ def get_article_content(url):
         return "Erro ao processar a notícia."
 
 def monitor_news():
-    dbx = connect_to_dropbox()
-    if dbx is None:
-        return
-
-    seen_links = load_seen_links()
-    current_links = get_news_links(URL)
-
+    def monitor_news():
+    """Monitora o site e envia notificações para novos links."""
+    download_db_from_dropbox()  # Baixa o banco de dados antes de iniciar
+    initialize_db()  # Certifica-se de que o banco está pronto
+    seen_links_pgrp = load_seen_links_pgrp()
+    current_links = get_news_links(BASE_URL)
+    
     # Encontrando novos links que não foram vistos antes
-    new_links = {link for link in current_links if link not in seen_links}
+    new_links = set(current_links) - seen_links
 
     if new_links:
-        print(f"Novos links encontrados: {new_links}")
+        print(f"[DEBUG] Novos links: {new_links}")
         for link in new_links:
-            try:
+            title, url = get_article_title_and_url(link)
+            if title and url:
                 send_email_notification(get_article_content(link))
-            except Exception as e:
+        save_seen_links(new_links)
+    except Exception as e:
                 print(f"Erro ao enviar e-mail: {e}")
-
-        # Atualiza o banco de dados após envio com os novos links
-        seen_links.update(new_links)
-        save_seen_links(seen_links)
-    else:
-        print("Nenhuma nova notícia para enviar e-mail.")
+    
+    upload_db_to_dropbox()  # Envia o banco de dados atualizado para o Dropbox
 
 # Execução principal
 if __name__ == "__main__":
