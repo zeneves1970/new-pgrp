@@ -11,7 +11,7 @@ import urllib3
 # Configurações
 BASE_URL = "https://www.pgdporto.pt/proc-web/"
 HEADERS = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36",
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.93 Safari/537.36",
     "Accept-Language": "en-US,en;q=0.9",
 }
 EMAIL_USER = os.getenv("EMAIL_USER")
