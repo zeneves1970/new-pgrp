@@ -49,7 +49,7 @@ try:
     conn.close()
 except sqlite3.DatabaseError as e:
     print(f'Erro ao criar banco de dados: {e}')
-    "
+        "
 
     # Executar o script Python
     - name: Run Script
