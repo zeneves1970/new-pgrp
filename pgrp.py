@@ -33,7 +33,6 @@ BASE_URL = "https://www.pgdporto.pt/proc-web/"
 URL = f"{BASE_URL}"  # Página principal
 SEEN_LINKS_DB = "seen_links_pgrp.db"  # Nome do arquivo do banco de dados SQLite
 
-
 # Função para carregar links já vistos do banco de dados
 def load_seen_links():
     conn = sqlite3.connect(SEEN_LINKS_DB)
@@ -41,11 +40,11 @@ def load_seen_links():
 
     # Criar a tabela se não existir
     cursor.execute('''
-    CREATE TABLE IF NOT EXISTS links (
+    CREATE TABLE IF NOT EXISTS seen_links (
         url TEXT PRIMARY KEY
     )''')
     
-    cursor.execute("SELECT url FROM links")
+    cursor.execute("SELECT url FROM seen_links")
     rows = cursor.fetchall()
     seen_links = {row[0] for row in rows}
     conn.close()
@@ -60,12 +59,12 @@ def save_seen_links(seen_links):
 
     # Criar a tabela se não existir
     cursor.execute('''
-    CREATE TABLE IF NOT EXISTS links (
+    CREATE TABLE IF NOT EXISTS seen_links (
         url TEXT PRIMARY KEY
     )''')
     
     # Inserir novos links no banco de dados
-    cursor.executemany("INSERT OR IGNORE INTO links (url) VALUES (?)", [(link,) for link in seen_links])
+    cursor.executemany("INSERT OR IGNORE INTO seen_links (url) VALUES (?)", [(link,) for link in seen_links])
     conn.commit()
     conn.close()
     
@@ -102,7 +101,8 @@ def get_news_links(url):
     Retorna uma lista com os links completos encontrados.
     """
     try:
-        response = requests.get(url, verify=False, timeout=10)  # Ignora SSL e define timeout
+        # Aumentar o timeout para 30 segundos
+        response = requests.get(url, verify=False, timeout=30)  # Ignora SSL e define timeout
         if response.status_code != 200:
             print(f"Erro ao acessar a página: {response.status_code}")
             return []
@@ -119,14 +119,14 @@ def get_news_links(url):
         
         print(f"Links encontrados: {links}")
         return links
-    except Exception as e:
-        print(f"Erro ao buscar links: {e}")
+    except requests.exceptions.RequestException as e:
+        print(f"Erro ao tentar se conectar ao site: {e}")
         return set()
 
 
 def get_article_content(url):
     try:
-        response = requests.get(url, verify=False, timeout=10)
+        response = requests.get(url, verify=False, timeout=30)
         if response.status_code != 200:
             print(f"Erro ao acessar a notícia: {response.status_code}")
             return "Erro ao acessar a notícia."
