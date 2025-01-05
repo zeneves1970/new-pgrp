@@ -42,9 +42,8 @@ jobs:
         EMAIL_USER: ${{ secrets.EMAIL_USER }}
         EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
         TO_EMAIL: ${{ secrets.TO_EMAIL }}
-        DROPBOX_CLIENT_ID: ${{ secrets.DROPBOX_CLIENT_ID }}
-        DROPBOX_CLIENT_SECRET: ${{ secrets.DROPBOX_CLIENT_SECRET }}
-        DROPBOX_REFRESH_TOKEN: ${{ secrets.DROPBOX_REFRESH_TOKEN }}
+        DROPBOX_ACCESS_TOKEN: ${{ secrets.DROPBOX_ACCESS_TOKEN }}  # Usar o access_token inicial
+        DROPBOX_REFRESH_TOKEN: ${{ secrets.DROPBOX_REFRESH_TOKEN }}  # Usar o refresh_token para renovar, se necessário
       run: python3 pgrp.py
 
     # Debug: Verificar o conteúdo do banco de dados após o script
