@@ -84,33 +84,30 @@ Content-Transfer-Encoding: 8bit
         print("Erro ao enviar e-mail:", e)
 
 
-# Função para buscar links de notícias da URL fornecida
+import time
+
 def get_news_links(url):
-    """
-    Função para buscar links de notícias da URL fornecida.
-    Retorna uma lista com os links completos encontrados.
-    """
-    try:
-        response = requests.get(url, verify=False)  # Ignora SSL
-        if response.status_code != 200:
-            print(f"Erro ao acessar a página: {response.status_code}")
-            return []
-        
-        # Parse da resposta com BeautifulSoup
-        soup = BeautifulSoup(response.content, 'html.parser')
-        links = set()
-        
-        # Ajuste para criar a URL completa
-        for a_tag in soup.find_all("a", href=True):
-            if "news.jsf" in a_tag['href']:  # Apenas links de notícias relevantes
-                full_link = f"https://www.pgdporto.pt/proc-web/{a_tag['href']}"  # Monta a URL completa
-                links.add(full_link)
-        
-        print(f"Links encontrados: {links}")
-        return links
-    except Exception as e:
-        print(f"Erro ao buscar links: {e}")
-        return set()
+    retries = 3  # Tentativas de conexão
+    for attempt in range(retries):
+        try:
+            response = requests.get(url, verify=False, timeout=10)  # timeout de 10 segundos
+            if response.status_code == 200:
+                break  # Se a conexão for bem-sucedida, sai do loop
+        except requests.exceptions.RequestException as e:
+            if attempt < retries - 1:  # Tentar novamente se não for a última tentativa
+                print(f"Tentativa {attempt + 1} falhou, tentando novamente...")
+                time.sleep(5)  # Esperar 5 segundos antes de tentar novamente
+            else:
+                print(f"Erro ao acessar a página após {retries} tentativas: {e}")
+                return []  # Retorna lista vazia se todas as tentativas falharem
+    # Parse da resposta com BeautifulSoup
+    soup = BeautifulSoup(response.content, 'html.parser')
+    links = set()
+    for a_tag in soup.find_all("a", href=True):
+        if "news.jsf" in a_tag['href']:
+            full_link = f"https://www.pgdporto.pt/proc-web/{a_tag['href']}"
+            links.add(full_link)
+    return links
 
 def get_article_content(url):
     try:
