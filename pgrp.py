@@ -43,7 +43,7 @@ def connect_to_dropbox():
 def download_db_from_dropbox():
     """Faz o download do banco de dados do Dropbox."""
     try:
-        dbx = get_dropbox_client()
+        dbx = connect_to_dropbox ()
         metadata, res = dbx.files_download(DROPBOX_PATH)
         with open(DB_NAME, "wb") as f:
             f.write(res.content)
@@ -59,7 +59,7 @@ def download_db_from_dropbox():
 def upload_db_to_dropbox():
     """Faz o upload do banco de dados para o Dropbox."""
     try:
-        dbx = get_dropbox_client()
+        dbx = connect_to_dropbox ()
         with open(DB_NAME, "rb") as f:
             dbx.files_upload(f.read(), DROPBOX_PATH, mode=dropbox.files.WriteMode("overwrite"))
         print("[DEBUG] Banco de dados enviado para o Dropbox.")
@@ -81,14 +81,14 @@ def initialize_db():
     conn.close()
     
 
-# Função para carregar links já vistos do banco de dados
 def load_seen_links_pgrp():
     conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()
     cursor.execute("SELECT link FROM seen_links_pgrp")
     links = {row[0] for row in cursor.fetchall()}
     conn.close()
-    return seen_links_pgrp
+    return links  # Correção aqui
+
 
 # Função para salvar novos links no banco de dados
 def save_seen_links_pgrp(new_links):
@@ -199,7 +199,7 @@ def monitor_news():
         initialize_db()  # Cria o banco se ele não existe
 
     initialize_db()  # Certifica-se de que o banco está pronto
-    seen_links_pgrp = load_seen_links_pgrp()
+    seen_links_pgrp = load_seen_links_pgrp()  # Correção na chamada
     current_links = get_news_links(BASE_URL)
 
     # Encontrando novos links que não foram vistos antes
