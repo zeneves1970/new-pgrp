@@ -102,23 +102,27 @@ def save_seen_links_pgrp(new_links):
 # Função para buscar links de notícias da URL fornecida
 def get_news_links(url):
     try:
-        response = requests.get(url, verify=False)  # Ignora SSL
+        response = requests.get(url, headers=HEADERS, verify=False, timeout=30)  # Aumentando o tempo de timeout
         if response.status_code != 200:
             print(f"[ERRO] Erro ao acessar a página: {response.status_code}")
             return set()
-        
+
         soup = BeautifulSoup(response.content, 'html.parser')
         links = set()
         for a_tag in soup.find_all("a", href=True):
             if "news.jsf" in a_tag['href']:  # Apenas links de notícias relevantes
-                full_link = f"{BASE_URL}{a_tag['href']}"
+                full_link = urljoin(BASE_URL, a_tag['href'])
                 links.add(full_link)
-        
+
         print(f"[DEBUG] Links encontrados: {links}")
         return links
+    except requests.exceptions.Timeout:
+        print(f"[ERRO] Timeout ao tentar conectar a {url}.")
+        return set()
     except Exception as e:
         print(f"[ERRO] Falha ao buscar links: {e}")
         return set()
+
 
 # Função para enviar uma notificação por e-mail
 def send_email_notification(article_content):
