@@ -31,7 +31,7 @@ jobs:
       # Verificar o conteúdo do banco de dados antes do script (opcional)
       - name: Debug - Show Database Content Before Script
         run: |
-          sqlite3 seen_links_pgrp.db "SELECT * FROM links LIMIT 5;" || echo "Database not initialized yet."
+          sqlite3 seen_links_pgrp.db "SELECT * FROM seen_links LIMIT 5;" || echo "Database not initialized yet."
 
       # Executar o script Python principal
       - name: Run Script
@@ -45,7 +45,7 @@ jobs:
       # Verificar o conteúdo do banco de dados após o script
       - name: Debug - Show Database Content After Script
         run: |
-          sqlite3 seen_links_pgrp.db "SELECT * FROM links LIMIT 5;" || echo "Database not initialized yet."
+          sqlite3 seen_links_pgrp.db "SELECT * FROM seen_links LIMIT 5;" || echo "Database not initialized yet."
 
       # Fazer upload do banco de dados atualizado para o Dropbox
       - name: Upload Updated Database to Dropbox
@@ -53,5 +53,6 @@ jobs:
           curl -X POST https://content.dropboxapi.com/2/files/upload \
             --header "Authorization: Bearer ${{ secrets.DROPBOX_ACCESS_TOKEN }}" \
             --header "Dropbox-API-Arg: {\"path\": \"/seen_links_pgrp.db\",\"mode\": \"overwrite\",\"autorename\": true}" \
+            --header "Content-Type: application/octet-stream" \
             --data-binary @seen_links_pgrp.db
           echo "Banco de dados atualizado no Dropbox."
