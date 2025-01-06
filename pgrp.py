@@ -29,15 +29,22 @@ def initialize_db():
     conn.close()
     print(f"[DEBUG] Banco de dados '{DB_NAME}' e tabela 'links' criados/verificados com sucesso.")
 
-# Garante que o banco de dados e a tabela existem antes de qualquer operação
-def ensure_table_exists():
-    """Verifica se a tabela 'links' existe e a cria caso contrário."""
-    if not os.path.exists(DB_NAME):
-        print(f"[DEBUG] Banco de dados '{DB_NAME}' não encontrado localmente. Criando um novo.")
-        initialize_db()
-    else:
-        print(f"[DEBUG] Banco de dados '{DB_NAME}' encontrado. Verificando tabela 'links'.")
-        initialize_db()  # Garante que a tabela existe no banco existente
+# Verifica se a tabela links existe (mesmo após baixar do Dropbox)
+def ensure_table_exists_in_downloaded_db():
+    """Garante que a tabela 'links' existe no banco de dados baixado."""
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+    try:
+        cursor.execute("SELECT 1 FROM links LIMIT 1;")
+    except sqlite3.OperationalError:
+        print("[WARN] Tabela 'links' não encontrada no banco baixado. Criando tabela.")
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS links (
+            link TEXT PRIMARY KEY
+        )
+        """)
+        conn.commit()
+    conn.close()
 
 # Função para conectar ao Dropbox
 def connect_to_dropbox():
@@ -56,6 +63,7 @@ def download_db_from_dropbox(dbx):
         with open(DB_NAME, "wb") as f:
             f.write(res.content)
         print("[DEBUG] Banco de dados baixado do Dropbox com sucesso.")
+        ensure_table_exists_in_downloaded_db()
     except dropbox.exceptions.ApiError as e:
         if e.error.is_path() and e.error.get_path().is_not_found():
             print("[DEBUG] Banco de dados não encontrado no Dropbox. Criando um novo localmente.")
@@ -157,7 +165,7 @@ Content-Transfer-Encoding: 8bit
 
 # Função principal de monitoramento
 def monitor_news():
-    ensure_table_exists()  # Garante que o banco de dados e a tabela existem
+    ensure_table_exists_in_downloaded_db()  # Garante a presença da tabela após o download
     dbx = connect_to_dropbox()
     if not dbx:
         return
