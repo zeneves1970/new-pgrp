@@ -76,16 +76,17 @@ def upload_db_to_dropbox(dbx):
     try:
         with open(DB_NAME, "rb") as f:
             dbx.files_upload(
-                f.read(), 
-                f"/{DB_NAME}", 
+                f.read(),
+                f"/{DB_NAME}",
                 mode=dropbox.files.WriteMode.overwrite,
-                mute=True  # Remove logs desnecessários no Dropbox
+                mute=True  # Evita notificações do Dropbox
             )
         print("[DEBUG] Banco de dados enviado para o Dropbox com sucesso.")
     except dropbox.exceptions.ApiError as e:
         print(f"[ERRO] Erro ao enviar o banco de dados para o Dropbox: {e}")
     except Exception as e:
         print(f"[ERRO] Falha inesperada no upload para o Dropbox: {e}")
+
 
 
 # Função para carregar links já vistos do banco de dados
