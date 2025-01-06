@@ -25,7 +25,6 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
 
-
     # Certifique-se de que seen_links.txt existe
     - name: Ensure seen_links.txt Exists
       run: |
@@ -53,12 +52,13 @@ jobs:
     - name: Debug - Show seen_links.txt Before Script
       run: cat seen_links.txt || echo "seen_links.txt does not exist"
 
-    # Executar o script Python
+    # Executar o script Python com a chave da API
     - name: Run Script
       env:
         EMAIL_USER: ${{ secrets.EMAIL_USER }}
         EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
         TO_EMAIL: ${{ secrets.TO_EMAIL }}
+        SCRAPER_API_KEY: ${{ secrets.SCRAPER_API_KEY }}  # Passando a chave da API como variável de ambiente
       run: python3 pgrp.py
 
     # Debug: Verificar o conteúdo do arquivo após o script
