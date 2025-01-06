@@ -3,36 +3,6 @@ import requests
 from bs4 import BeautifulSoup
 import smtplib
 import urllib3
-import time
-
-import os
-
-# Acessar a chave da API configurada no GitHub Secrets
-SCRAPER_API_KEY = os.getenv("SCRAPER_API_KEY")
-
-# Verifique se a chave foi recuperada com sucesso
-if SCRAPER_API_KEY is None:
-    print("Chave da API não encontrada. Verifique a configuração no GitHub Secrets.")
-else:
-    print("Chave da API carregada com sucesso.")
-
-# Agora use a chave da API em suas requisições
-# Exemplo usando requests e ScraperAPI:
-import requests
-
-url = "http://www.google.com/"
-params = {
-    'api_key': SCRAPER_API_KEY,
-    'url': url
-}
-
-response = requests.get('http://api.scraperapi.com', params=params)
-
-if response.status_code == 200:
-    print("Conexão bem-sucedida usando ScraperAPI")
-else:
-    print(f"Falha na conexão: {response.status_code}")
-
 
 # Função para extrair texto mantendo a ordem, com formatação para listas
 def extract_text_ordered(soup):
@@ -114,39 +84,37 @@ Content-Transfer-Encoding: 8bit
         print("Erro ao enviar e-mail:", e)
 
 
+# Função para buscar links de notícias da URL fornecida
 def get_news_links(url):
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36"
-    }
-    retries = 3  # Tentativas de conexão
-    for attempt in range(retries):
-        try:
-            response = requests.get(url, headers=headers, verify=False, timeout=10)  # Adicionando o cabeçalho User-Agent
-            if response.status_code == 200:
-                break  # Se a conexão for bem-sucedida, sai do loop
-        except requests.exceptions.RequestException as e:
-            if attempt < retries - 1:  # Tentar novamente se não for a última tentativa
-                print(f"Tentativa {attempt + 1} falhou, tentando novamente...")
-                time.sleep(5)  # Esperar 5 segundos antes de tentar novamente
-            else:
-                print(f"Erro ao acessar a página após {retries} tentativas: {e}")
-                return []  # Retorna lista vazia se todas as tentativas falharem
-    # Parse da resposta com BeautifulSoup
-    soup = BeautifulSoup(response.content, 'html.parser')
-    links = set()
-    for a_tag in soup.find_all("a", href=True):
-        if "news.jsf" in a_tag['href']:
-            full_link = f"https://www.pgdporto.pt/proc-web/{a_tag['href']}"
-            links.add(full_link)
-    return links
-
+    """
+    Função para buscar links de notícias da URL fornecida.
+    Retorna uma lista com os links completos encontrados.
+    """
+    try:
+        response = requests.get(url, verify=False)  # Ignora SSL
+        if response.status_code != 200:
+            print(f"Erro ao acessar a página: {response.status_code}")
+            return []
+        
+        # Parse da resposta com BeautifulSoup
+        soup = BeautifulSoup(response.content, 'html.parser')
+        links = set()
+        
+        # Ajuste para criar a URL completa
+        for a_tag in soup.find_all("a", href=True):
+            if "news.jsf" in a_tag['href']:  # Apenas links de notícias relevantes
+                full_link = f"https://www.pgdporto.pt/proc-web/{a_tag['href']}"  # Monta a URL completa
+                links.add(full_link)
+        
+        print(f"Links encontrados: {links}")
+        return links
+    except Exception as e:
+        print(f"Erro ao buscar links: {e}")
+        return set()
 
 def get_article_content(url):
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36"
-    }
     try:
-        response = requests.get(url, headers=headers, verify=False)  # Adicionando o cabeçalho User-Agent
+        response = requests.get(url, verify=False)
         if response.status_code != 200:
             print(f"Erro ao acessar a notícia: {response.status_code}")
             return "Erro ao acessar a notícia."
@@ -178,7 +146,6 @@ def get_article_content(url):
     except Exception as e:
         print(f"Erro ao processar a notícia: {e}")
         return "Erro ao processar a notícia."
-
 
 
 def monitor_news():
