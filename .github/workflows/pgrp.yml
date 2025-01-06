@@ -41,8 +41,3 @@ jobs:
           TO_EMAIL: ${{ secrets.TO_EMAIL }}
           DROPBOX_ACCESS_TOKEN: ${{ secrets.DROPBOX_ACCESS_TOKEN }}
         run: python3 pgrp.py
-
-      # Verificar o conteúdo do banco de dados após o script
-      - name: Debug - Show Database Content After Script
-        run: |
-          sqlite3 seen_links_pgrp.db "SELECT * FROM links LIMIT 5;" || echo "Database not initialized yet."
