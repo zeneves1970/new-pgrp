@@ -8,14 +8,14 @@ from dropbox.exceptions import AuthError
 
 # Configurações
 DB_NAME = "seen_links_pgrp.db"
-EMAIL_USER = os.getenv("EMAIL_USER")  # Recupera do Secret
-EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD")  # Recupera do Secret
-TO_EMAIL = os.getenv("TO_EMAIL")  # Recupera do Secret
-DROPBOX_ACCESS_TOKEN = os.getenv("DROPBOX_ACCESS_TOKEN")  # Agora usa o access_token diretamente
+EMAIL_USER = os.getenv("EMAIL_USER")
+EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD")
+TO_EMAIL = os.getenv("TO_EMAIL")
+DROPBOX_ACCESS_TOKEN = os.getenv("DROPBOX_ACCESS_TOKEN")
 BASE_URL = "https://www.pgdporto.pt/proc-web/"
-URL = f"{BASE_URL}"  # Página principal
+URL = f"{BASE_URL}"
 
-# Verificar se a tabela existe e criar se necessário
+# Inicializa o banco de dados local
 def initialize_db():
     with sqlite3.connect(DB_NAME) as conn:
         cursor = conn.cursor()
@@ -24,36 +24,34 @@ def initialize_db():
                 link TEXT PRIMARY KEY
             )
         """)
-        if cursor.rowcount > 0:
-            print("[INFO] Tabela 'links' criada.")
         conn.commit()
-        
-# Função para conectar ao Dropbox
-def connect_to_dropbox():
-    try:
-        dbx = dropbox.Dropbox(DROPBOX_ACCESS_TOKEN)
-        print("[DEBUG] Conectado ao Dropbox com sucesso.")
-        return dbx
-    except AuthError as e:
-        print(f"[ERRO] Erro de autenticação no Dropbox: {e}")
-        return None
+    print("[INFO] Banco de dados local inicializado.")
 
-# Função para baixar o banco de dados do Dropbox
+# Verifica se o banco de dados existe no Dropbox
+def check_db_exists_in_dropbox(dbx):
+    try:
+        dbx.files_get_metadata(f"/{DB_NAME}")
+        print("[DEBUG] Banco de dados encontrado no Dropbox.")
+        return True
+    except dropbox.exceptions.ApiError as e:
+        if e.error.is_path() and e.error.get_path().is_not_found():
+            print("[INFO] Banco de dados não encontrado no Dropbox.")
+            return False
+        else:
+            print(f"[ERRO] Erro ao verificar banco no Dropbox: {e}")
+            return False
+
+# Faz o download do banco do Dropbox
 def download_db_from_dropbox(dbx):
     try:
         metadata, res = dbx.files_download(f"/{DB_NAME}")
         with open(DB_NAME, "wb") as f:
             f.write(res.content)
         print("[DEBUG] Banco de dados baixado do Dropbox com sucesso.")
-        ensure_table_exists_in_downloaded_db()
-    except dropbox.exceptions.ApiError as e:
-        if e.error.is_path() and e.error.get_path().is_not_found():
-            print("[DEBUG] Banco de dados não encontrado no Dropbox. Criando um novo localmente.")
-            initialize_db()
-        else:
-            print(f"[ERRO] Falha ao baixar banco de dados: {e}")
+    except Exception as e:
+        print(f"[ERRO] Falha ao baixar banco de dados: {e}")
 
-
+# Faz upload do banco para o Dropbox
 def upload_db_to_dropbox(dbx):
     try:
         with open(DB_NAME, "rb") as f:
@@ -64,75 +62,42 @@ def upload_db_to_dropbox(dbx):
                 mute=True
             )
         print("[DEBUG] Banco de dados enviado para o Dropbox com sucesso.")
-    except dropbox.exceptions.ApiError as e:
-        print(f"[ERRO] Erro ao enviar o banco de dados para o Dropbox: {e}")
     except Exception as e:
-        print(f"[ERRO] Falha inesperada no upload para o Dropbox: {e}")
+        print(f"[ERRO] Falha ao enviar banco de dados: {e}")
 
-
-# Função para carregar links já vistos do banco de dados
+# Carrega links já vistos
 def load_seen_links():
-    conn = sqlite3.connect(DB_NAME)
-    cursor = conn.cursor()
-    cursor.execute("SELECT link FROM links")
-    links = {row[0] for row in cursor.fetchall()}
-    conn.close()
+    with sqlite3.connect(DB_NAME) as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT link FROM links")
+        links = {row[0] for row in cursor.fetchall()}
     print(f"[DEBUG] Links carregados do banco de dados: {links}")
     return links
 
-# Função para salvar novos links no banco de dados
+# Salva novos links no banco
 def save_seen_links(seen_links):
-    conn = sqlite3.connect(DB_NAME)
-    cursor = conn.cursor()
-    cursor.executemany("INSERT OR IGNORE INTO links (link) VALUES (?)", [(link,) for link in seen_links])
-    conn.commit()
-    conn.close()
+    with sqlite3.connect(DB_NAME) as conn:
+        cursor = conn.cursor()
+        cursor.executemany("INSERT OR IGNORE INTO links (link) VALUES (?)", [(link,) for link in seen_links])
+        conn.commit()
     print("[DEBUG] Banco de dados atualizado com novos links.")
 
-# Função para buscar links de notícias da URL fornecida
+# Obtém links de notícias
 def get_news_links(url):
     try:
-        response = requests.get(url, verify=False)  # Ignora SSL
+        response = requests.get(url, verify=False)
         if response.status_code != 200:
             print(f"[ERRO] Erro ao acessar a página: {response.status_code}")
             return set()
-        
         soup = BeautifulSoup(response.content, 'html.parser')
-        links = set()
-        for a_tag in soup.find_all("a", href=True):
-            if "news.jsf" in a_tag['href']:  # Apenas links de notícias relevantes
-                full_link = f"{BASE_URL}{a_tag['href']}"
-                links.add(full_link)
-        
+        links = {f"{BASE_URL}{a['href']}" for a in soup.find_all("a", href=True) if "news.jsf" in a['href']}
         print(f"[DEBUG] Links encontrados: {links}")
         return links
     except Exception as e:
         print(f"[ERRO] Falha ao buscar links: {e}")
         return set()
 
-# Função para obter o conteúdo de um artigo
-def get_article_content(url):
-    try:
-        response = requests.get(url, verify=False)
-        if response.status_code != 200:
-            print(f"[ERRO] Erro ao acessar a notícia: {response.status_code}")
-            return "Erro ao acessar a notícia."
-
-        soup = BeautifulSoup(response.content, 'html.parser')
-
-        title_elem = soup.find("div", class_="news-detail-title")
-        title = title_elem.get_text(strip=True) if title_elem else "Título não encontrado."
-        summary_elem = soup.find("div", class_="news-detail-summary")
-        summary = summary_elem.get_text(strip=True) if summary_elem else "Resumo não encontrado."
-        body_elem = soup.find("div", class_="news-detail-body")
-        body = body_elem.get_text(strip=True) if body_elem else "Conteúdo vazio."
-
-        return f"{title}\n\n{summary}\n\n{body}"
-    except Exception as e:
-        print(f"[ERRO] Falha ao processar a notícia: {e}")
-        return "Erro ao processar a notícia."
-
-# Função para enviar uma notificação por e-mail
+# Envia notificação por e-mail
 def send_email_notification(content):
     subject = "Novo comunicado da PGRP!"
     email_text = f"""\
@@ -140,7 +105,6 @@ From: {EMAIL_USER}
 To: {TO_EMAIL}
 Subject: {subject}
 Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 8bit
 
 {content}
 """
@@ -153,15 +117,21 @@ Content-Transfer-Encoding: 8bit
     except Exception as e:
         print(f"[ERRO] Falha ao enviar e-mail: {e}")
 
-# Função principal de monitoramento
+# Monitoramento principal
 def monitor_news():
-    ensure_table_exists_in_downloaded_db()  # Garante a presença da tabela após o download
     dbx = connect_to_dropbox()
     if not dbx:
         return
 
-    download_db_from_dropbox(dbx)  # Baixa o banco de dados do Dropbox
+    if not check_db_exists_in_dropbox(dbx):
+        # Banco de dados não encontrado no Dropbox, cria localmente e envia
+        initialize_db()
+        upload_db_to_dropbox(dbx)
+    else:
+        # Banco de dados encontrado, baixa para local
+        download_db_from_dropbox(dbx)
 
+    # Continua com a lógica de monitoramento
     seen_links = load_seen_links()
     current_links = get_news_links(URL)
 
@@ -169,10 +139,9 @@ def monitor_news():
     if new_links:
         print(f"[DEBUG] Novos links encontrados: {new_links}")
         for link in new_links:
-            content = get_article_content(link)
-            send_email_notification(content)
-        save_seen_links(new_links)  # Atualiza o banco localmente
-        upload_db_to_dropbox(dbx)  # Envia o banco de dados atualizado para o Dropbox
+            send_email_notification(link)
+        save_seen_links(new_links)
+        upload_db_to_dropbox(dbx)
     else:
         print("[DEBUG] Nenhuma nova notícia para enviar.")
 
