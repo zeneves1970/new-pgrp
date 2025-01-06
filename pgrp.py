@@ -3,7 +3,6 @@ import sqlite3
 import requests
 from bs4 import BeautifulSoup
 import smtplib
-import urllib3
 import dropbox
 from dropbox.exceptions import AuthError
 
@@ -28,13 +27,17 @@ def initialize_db():
     """)
     conn.commit()
     conn.close()
-    print(f"[DEBUG] Banco de dados '{DB_NAME}' criado com sucesso.")
+    print(f"[DEBUG] Banco de dados '{DB_NAME}' e tabela 'links' criados/verificados com sucesso.")
 
-# Garante que o banco de dados existe antes de qualquer operação
-def ensure_db_exists():
+# Garante que o banco de dados e a tabela existem antes de qualquer operação
+def ensure_table_exists():
+    """Verifica se a tabela 'links' existe e a cria caso contrário."""
     if not os.path.exists(DB_NAME):
         print(f"[DEBUG] Banco de dados '{DB_NAME}' não encontrado localmente. Criando um novo.")
         initialize_db()
+    else:
+        print(f"[DEBUG] Banco de dados '{DB_NAME}' encontrado. Verificando tabela 'links'.")
+        initialize_db()  # Garante que a tabela existe no banco existente
 
 # Função para conectar ao Dropbox
 def connect_to_dropbox():
@@ -55,7 +58,8 @@ def download_db_from_dropbox(dbx):
         print("[DEBUG] Banco de dados baixado do Dropbox com sucesso.")
     except dropbox.exceptions.ApiError as e:
         if e.error.is_path() and e.error.get_path().is_not_found():
-            print("[DEBUG] Banco de dados não encontrado no Dropbox. Criando um novo.")
+            print("[DEBUG] Banco de dados não encontrado no Dropbox. Criando um novo localmente.")
+            initialize_db()
         else:
             print(f"[ERRO] Falha ao baixar banco de dados: {e}")
 
@@ -153,7 +157,7 @@ Content-Transfer-Encoding: 8bit
 
 # Função principal de monitoramento
 def monitor_news():
-    ensure_db_exists()  # Garante que o banco de dados existe
+    ensure_table_exists()  # Garante que o banco de dados e a tabela existem
     dbx = connect_to_dropbox()
     if not dbx:
         return
