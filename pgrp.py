@@ -15,37 +15,19 @@ DROPBOX_ACCESS_TOKEN = os.getenv("DROPBOX_ACCESS_TOKEN")  # Agora usa o access_t
 BASE_URL = "https://www.pgdporto.pt/proc-web/"
 URL = f"{BASE_URL}"  # Página principal
 
-# Função para criar a tabela no banco de dados SQLite
+# Verificar se a tabela existe e criar se necessário
 def initialize_db():
-    """Cria o banco de dados e a tabela de links se não existirem."""
-    conn = sqlite3.connect(DB_NAME)
-    cursor = conn.cursor()
-    cursor.execute("""
-    CREATE TABLE IF NOT EXISTS links (
-        link TEXT PRIMARY KEY
-    )
-    """)
-    conn.commit()
-    conn.close()
-    print(f"[DEBUG] Banco de dados '{DB_NAME}' e tabela 'links' criados/verificados com sucesso.")
-
-# Verifica se a tabela links existe (mesmo após baixar do Dropbox)
-def ensure_table_exists_in_downloaded_db():
-    """Garante que a tabela 'links' existe no banco de dados baixado."""
-    conn = sqlite3.connect(DB_NAME)
-    cursor = conn.cursor()
-    try:
-        cursor.execute("SELECT 1 FROM links LIMIT 1;")
-    except sqlite3.OperationalError:
-        print("[WARN] Tabela 'links' não encontrada no banco baixado. Criando tabela.")
+    with sqlite3.connect(DB_NAME) as conn:
+        cursor = conn.cursor()
         cursor.execute("""
-        CREATE TABLE IF NOT EXISTS links (
-            link TEXT PRIMARY KEY
-        )
+            CREATE TABLE IF NOT EXISTS links (
+                link TEXT PRIMARY KEY
+            )
         """)
+        if cursor.rowcount > 0:
+            print("[INFO] Tabela 'links' criada.")
         conn.commit()
-    conn.close()
-
+        
 # Função para conectar ao Dropbox
 def connect_to_dropbox():
     try:
