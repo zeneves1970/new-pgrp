@@ -5,6 +5,35 @@ import smtplib
 import urllib3
 import time
 
+import os
+
+# Acessar a chave da API configurada no GitHub Secrets
+SCRAPER_API_KEY = os.getenv("SCRAPER_API_KEY")
+
+# Verifique se a chave foi recuperada com sucesso
+if SCRAPER_API_KEY is None:
+    print("Chave da API não encontrada. Verifique a configuração no GitHub Secrets.")
+else:
+    print("Chave da API carregada com sucesso.")
+
+# Agora use a chave da API em suas requisições
+# Exemplo usando requests e ScraperAPI:
+import requests
+
+url = "http://www.pgdporto.pt/proc-web/"
+params = {
+    'api_key': SCRAPER_API_KEY,
+    'url': url
+}
+
+response = requests.get('http://api.scraperapi.com', params=params)
+
+if response.status_code == 200:
+    print("Conexão bem-sucedida usando ScraperAPI")
+else:
+    print(f"Falha na conexão: {response.status_code}")
+
+
 # Função para extrair texto mantendo a ordem, com formatação para listas
 def extract_text_ordered(soup):
     content = []
