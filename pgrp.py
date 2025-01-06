@@ -28,7 +28,7 @@ EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD")  # Recupera do Secret
 TO_EMAIL = os.getenv("TO_EMAIL")  # Recupera do Secret
 
 # URL da página a ser monitorada
-BASE_URL = "https://www.google.com/"
+BASE_URL = "https://www.pgdporto.pt/proc-web/"
 URL = f"{BASE_URL}"  # Página principal
 SEEN_LINKS_FILE = "seen_links.txt"  # Nome do arquivo para armazenar links já vistos
 
