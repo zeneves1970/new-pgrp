@@ -117,6 +117,16 @@ Content-Type: text/plain; charset=utf-8
     except Exception as e:
         print(f"[ERRO] Falha ao enviar e-mail: {e}")
 
+# Conecta ao Dropbox
+def connect_to_dropbox():
+    try:
+        dbx = dropbox.Dropbox(DROPBOX_ACCESS_TOKEN)
+        print("[DEBUG] Conexão com o Dropbox realizada com sucesso.")
+        return dbx
+    except AuthError as e:
+        print(f"[ERRO] Erro de autenticação no Dropbox: {e}")
+        return None
+
 # Monitoramento principal
 def monitor_news():
     dbx = connect_to_dropbox()
