@@ -71,7 +71,7 @@ def download_db_from_dropbox(dbx):
         else:
             print(f"[ERRO] Falha ao baixar banco de dados: {e}")
 
-# Função para subir o banco de dados para o Dropbox
+
 def upload_db_to_dropbox(dbx):
     try:
         with open(DB_NAME, "rb") as f:
@@ -79,14 +79,13 @@ def upload_db_to_dropbox(dbx):
                 f.read(),
                 f"/{DB_NAME}",
                 mode=dropbox.files.WriteMode.overwrite,
-                mute=True  # Evita notificações do Dropbox
+                mute=True
             )
         print("[DEBUG] Banco de dados enviado para o Dropbox com sucesso.")
     except dropbox.exceptions.ApiError as e:
         print(f"[ERRO] Erro ao enviar o banco de dados para o Dropbox: {e}")
     except Exception as e:
         print(f"[ERRO] Falha inesperada no upload para o Dropbox: {e}")
-
 
 
 # Função para carregar links já vistos do banco de dados
