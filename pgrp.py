@@ -20,7 +20,7 @@ else:
 # Exemplo usando requests e ScraperAPI:
 import requests
 
-url = "http://www.pgdporto.pt/proc-web/"
+url = "http://www.google.com/"
 params = {
     'api_key': SCRAPER_API_KEY,
     'url': url
