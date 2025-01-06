@@ -9,73 +9,49 @@ on:
 
 jobs:
   process:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout Repository
-      uses: actions/checkout@v2
+      # Fazer checkout do repositório
+      - name: Checkout Repository
+        uses: actions/checkout@v2
 
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.x'
+      # Configurar o ambiente Python
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
 
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
+      # Instalar dependências
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
 
-    # Certifique-se de que seen_links.txt existe
-    - name: Ensure seen_links.txt Exists
-      run: |
-        if [ ! -f seen_links.txt ]; then
-          touch seen_links.txt
-        fi
+      # Verificar o conteúdo do banco de dados antes do script (opcional)
+      - name: Debug - Show Database Content Before Script
+        run: |
+          sqlite3 seen_links_pgrp.db "SELECT * FROM links LIMIT 5;" || echo "Database not initialized yet."
 
-    # Gerar chave de cache dinâmica
-    - name: Generate Cache Key
-      id: cache-key
-      run: |
-        key=$(sha256sum seen_links.txt | awk '{print $1}')
-        echo "key=$key" >> $GITHUB_ENV
+      # Executar o script Python principal
+      - name: Run Script
+        env:
+          EMAIL_USER: ${{ secrets.EMAIL_USER }}
+          EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
+          TO_EMAIL: ${{ secrets.TO_EMAIL }}
+          DROPBOX_ACCESS_TOKEN: ${{ secrets.DROPBOX_ACCESS_TOKEN }}
+        run: python3 pgrp.py
 
-    # Restaurar cache
-    - name: Restore Cache
-      uses: actions/cache@v3
-      with:
-        path: seen_links.txt
-        key: ${{ runner.os }}-seen-links-cache-${{ env.key }}
-        restore-keys: |
-          ${{ runner.os }}-seen-links-cache-
+      # Verificar o conteúdo do banco de dados após o script
+      - name: Debug - Show Database Content After Script
+        run: |
+          sqlite3 seen_links_pgrp.db "SELECT * FROM links LIMIT 5;" || echo "Database not initialized yet."
 
-    # Debug: Verificar o conteúdo do arquivo antes
-    - name: Debug - Show seen_links.txt Before Script
-      run: cat seen_links.txt || echo "seen_links.txt does not exist"
-
-    # Executar o script Python com a chave da API
-    - name: Run Script
-      env:
-        EMAIL_USER: ${{ secrets.EMAIL_USER }}
-        EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
-        TO_EMAIL: ${{ secrets.TO_EMAIL }}
-        SCRAPER_API_KEY: ${{ secrets.SCRAPER_API_KEY }}  # Passando a chave da API como variável de ambiente
-      run: python3 pgrp.py
-
-    # Debug: Verificar o conteúdo do arquivo após o script
-    - name: Debug - Show seen_links.txt After Script
-      run: cat seen_links.txt || echo "seen_links.txt is empty"
-
-    # Gerar novo hash para seen_links.txt
-    - name: Generate New Cache Key
-      id: new-cache-key
-      run: |
-        new_key=$(sha256sum seen_links.txt | awk '{print $1}')
-        echo "new_key=$new_key" >> $GITHUB_ENV
-
-    # Salvar cache se houve alteração no arquivo
-    - name: Save Updated Cache
-      if: env.key != env.new_key
-      uses: actions/cache@v3
-      with:
-        path: seen_links.txt
-        key: ${{ runner.os }}-seen-links-cache-${{ env.new_key }}
+      # Fazer upload do banco de dados atualizado para o Dropbox
+      - name: Upload Updated Database to Dropbox
+        run: |
+          curl -X POST https://content.dropboxapi.com/2/files/upload \
+            --header "Authorization: Bearer ${{ secrets.DROPBOX_ACCESS_TOKEN }}" \
+            --header "Dropbox-API-Arg: {\"path\": \"/seen_links_pgrp.db\",\"mode\": \"overwrite\",\"autorename\": true}" \
+            --data-binary @seen_links_pgrp.db
+          echo "Banco de dados atualizado no Dropbox."
