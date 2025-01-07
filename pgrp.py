@@ -11,7 +11,9 @@ DB_NAME = "seen_links_pgrp.db"
 EMAIL_USER = os.getenv("EMAIL_USER")
 EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD")
 TO_EMAIL = os.getenv("TO_EMAIL")
-DROPBOX_ACCESS_TOKEN = os.getenv("DROPBOX_ACCESS_TOKEN")
+DROPBOX_REFRESH_TOKEN = os.getenv("DROPBOX_REFRESH_TOKEN")
+APP_KEY = os.getenv("DROPBOX_APP_KEY")  # Usando variáveis de ambiente
+APP_SECRET = os.getenv("DROPBOX_APP_SECRET")  # Usando variáveis de ambiente
 BASE_URL = "https://www.pgdporto.pt/proc-web/"
 URL = f"{BASE_URL}"
 
@@ -117,19 +119,46 @@ Content-Type: text/plain; charset=utf-8
     except Exception as e:
         print(f"[ERRO] Falha ao enviar e-mail: {e}")
 
-# Conecta ao Dropbox
-def connect_to_dropbox():
-    try:
-        dbx = dropbox.Dropbox(DROPBOX_ACCESS_TOKEN)
-        print("[DEBUG] Conexão com o Dropbox realizada com sucesso.")
-        return dbx
-    except AuthError as e:
-        print(f"[ERRO] Erro de autenticação no Dropbox: {e}")
+# Função para obter um novo access token usando o refresh token
+def get_access_token_using_refresh_token(refresh_token, app_key, app_secret):
+    url = "https://api.dropboxapi.com/oauth2/token"
+    data = {
+        "grant_type": "refresh_token",
+        "refresh_token": refresh_token,
+        "client_id": app_key,
+        "client_secret": app_secret
+    }
+
+    response = requests.post(url, data=data)
+
+    if response.status_code == 200:
+        token_data = response.json()
+        return token_data["access_token"]
+    else:
+        print(f"[ERRO] Falha ao obter novo access token: {response.status_code} - {response.text}")
+        return None
+
+# Conectar ao Dropbox usando o refresh_token
+def connect_to_dropbox(refresh_token, app_key, app_secret):
+    # Obtém o access_token usando o refresh_token
+    access_token = get_access_token_using_refresh_token(refresh_token, app_key, app_secret)
+
+    if access_token:
+        try:
+            # Inicializa a conexão com o Dropbox usando o novo access token
+            dbx = dropbox.Dropbox(access_token)
+            print("[DEBUG] Conexão com o Dropbox realizada com sucesso.")
+            return dbx
+        except AuthError as e:
+            print(f"[ERRO] Erro de autenticação no Dropbox: {e}")
+            return None
+    else:
+        print("[ERRO] Não foi possível obter o access token.")
         return None
 
 # Monitoramento principal
 def monitor_news():
-    dbx = connect_to_dropbox()
+    dbx = connect_to_dropbox(DROPBOX_REFRESH_TOKEN, APP_KEY, APP_SECRET)  # Usando variáveis de ambiente
     if not dbx:
         return
 
