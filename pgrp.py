@@ -19,7 +19,7 @@ URL = f"{BASE_URL}"
 
 # Inicializa o banco de dados local
 def initialize_db():
-    # Verifica se a tabela já existe
+    # Verifica se a tabela já existe no banco local
     with sqlite3.connect(DB_NAME) as conn:
         cursor = conn.cursor()
         cursor.execute("""
@@ -51,6 +51,18 @@ def download_db_from_dropbox(dbx):
         with open(DB_NAME, "wb") as f:
             f.write(res.content)
         print("[DEBUG] Banco de dados baixado do Dropbox com sucesso.")
+        
+        # Verificar e criar a tabela 'links' caso não exista no banco baixado
+        with sqlite3.connect(DB_NAME) as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS links (
+                    link TEXT PRIMARY KEY
+                )
+            """)
+            conn.commit()
+        print("[INFO] Tabela 'links' verificada ou criada no banco de dados do Dropbox.")
+        
     except Exception as e:
         print(f"[ERRO] Falha ao baixar banco de dados: {e}")
 
@@ -188,4 +200,3 @@ def monitor_news():
 # Execução principal
 if __name__ == "__main__":
     monitor_news()
-
