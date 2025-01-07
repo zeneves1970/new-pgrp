@@ -19,6 +19,7 @@ URL = f"{BASE_URL}"
 
 # Inicializa o banco de dados local
 def initialize_db():
+    # Verifica se a tabela já existe
     with sqlite3.connect(DB_NAME) as conn:
         cursor = conn.cursor()
         cursor.execute("""
@@ -164,7 +165,7 @@ def monitor_news():
 
     if not check_db_exists_in_dropbox(dbx):
         # Banco de dados não encontrado no Dropbox, cria localmente e envia
-        initialize_db()
+        initialize_db()  # Garantir que a tabela seja criada, caso não exista
         upload_db_to_dropbox(dbx)
     else:
         # Banco de dados encontrado, baixa para local
@@ -187,3 +188,4 @@ def monitor_news():
 # Execução principal
 if __name__ == "__main__":
     monitor_news()
+
