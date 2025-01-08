@@ -28,11 +28,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      # Verificar o conteúdo do banco de dados antes do script (opcional)
-      - name: Debug - Show Database Content Before Script
-        run: |
-          sqlite3 seen_links_pgrp.db "SELECT * FROM links LIMIT 5;" || echo "Database not initialized yet."
-
+ 
       # Executar o script Python principal
       - name: Run Script
         env:
