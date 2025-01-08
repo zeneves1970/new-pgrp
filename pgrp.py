@@ -19,16 +19,21 @@ URL = f"{BASE_URL}"
 
 # Inicializa o banco de dados local
 def initialize_db():
-    # Verifica se a tabela já existe no banco local
-    with sqlite3.connect(DB_NAME) as conn:
-        cursor = conn.cursor()
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS links (
-                link TEXT PRIMARY KEY
-            )
-        """)
-        conn.commit()
-    print("[INFO] Banco de dados local inicializado.")
+    # Verifica se a tabela já existe
+    try:
+        with sqlite3.connect(DB_NAME) as conn:
+            cursor = conn.cursor()
+            # Criar a tabela se não existir
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS links (
+                    link TEXT PRIMARY KEY
+                )
+            """)
+            conn.commit()
+        print("[INFO] Banco de dados local inicializado.")
+    except sqlite3.Error as e:
+        print(f"[ERRO] Erro ao inicializar o banco de dados: {e}")
+
 
 # Verifica se o banco de dados existe no Dropbox
 def check_db_exists_in_dropbox(dbx):
