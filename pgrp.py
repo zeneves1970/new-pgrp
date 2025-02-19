@@ -10,7 +10,7 @@ from dropbox.exceptions import AuthError
 DB_NAME = "seen_links_pgrp.db"
 EMAIL_USER = os.getenv("EMAIL_USER")
 EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD")
-TO_EMAIL = os.getenv("TO_EMAIL")
+TO_EMAIL = os.getenv("TO_EMAIL").split(',')
 DROPBOX_REFRESH_TOKEN = os.getenv("DROPBOX_REFRESH_TOKEN")
 APP_KEY = os.getenv("DROPBOX_APP_KEY")  # Usando variáveis de ambiente
 APP_SECRET = os.getenv("DROPBOX_APP_SECRET")  # Usando variáveis de ambiente
