@@ -4,35 +4,37 @@ env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 on:
-  push:
-    branches:
-      - main
   schedule:
-    - cron: "*/15 * * * *"  # Executar a cada 15 minutos
+    - cron: "*/15 * * * *"
+
+concurrency:
+  group: email-job
+  cancel-in-progress: true
 
 jobs:
   process:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
 
     steps:
-      # Fazer checkout do repositório
-      - name: Checkout Repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      # Configurar o ambiente Python
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
-          python-version: '3.x'
+          python-version: '3.11'
 
-      # Instalar dependências
-      - name: Install dependencies
-        run: |
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
- 
-      # Executar o script Python principal
       - name: Run Script
         env:
           EMAIL_USER: ${{ secrets.EMAIL_USER }}
@@ -41,4 +43,4 @@ jobs:
           DROPBOX_REFRESH_TOKEN: ${{ secrets.DROPBOX_REFRESH_TOKEN }}
           DROPBOX_APP_KEY: ${{ secrets.DROPBOX_APP_KEY }}
           DROPBOX_APP_SECRET: ${{ secrets.DROPBOX_APP_SECRET }}
-        run: python3 pgrp.py
+        run: python pgrp.py
