@@ -145,15 +145,47 @@ def get_news_links(url):
 def send_email_notification(article_content):
     subject = "Novo comunicado da PGRP!"
 
+    title = article_content.get("title", "")
+    summary = article_content.get("summary", "")
+    content = article_content.get("content", "")
+
+    # Converte as quebras de linha do conteúdo em parágrafos HTML
+    content_html = "".join(
+        f"<p>{paragraph.strip()}</p>"
+        for paragraph in content.split("\n\n")
+        if paragraph.strip()
+    )
+
+    email_html = f"""\
+<html>
+<head>
+    <meta charset="utf-8">
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.5; color: #222;">
+
+    <h2>{title}</h2>
+
+    <h3>Resumo</h3>
+    <p>{summary}</p>
+
+    <h3>Conteúdo</h3>
+    {content_html}
+
+</body>
+</html>
+"""
+
     email_text = f"""\
 From: {EMAIL_USER}
 To: {TO_EMAIL}
 Subject: {subject}
-Content-Type: text/plain; charset=utf-8
+MIME-Version: 1.0
+Content-Type: text/html; charset=utf-8
 Content-Transfer-Encoding: 8bit
 
-{article_content}
+{email_html}
 """
+
     try:
         with smtplib.SMTP("smtp.gmail.com", 587) as server:
             server.starttls()
