@@ -15,7 +15,7 @@ DROPBOX_REFRESH_TOKEN = os.getenv("DROPBOX_REFRESH_TOKEN")
 APP_KEY = os.getenv("DROPBOX_APP_KEY")  # Usando variáveis de ambiente
 APP_SECRET = os.getenv("DROPBOX_APP_SECRET")  # Usando variáveis de ambiente
 BASE_URL = "https://pgreg-porto.ministeriopublico.pt/"
-URL = f"{BASE_URL}"
+URL = f"{BASE_URL}actividade"
 
 # Inicializa o banco de dados local
 def initialize_db():
@@ -105,14 +105,38 @@ def save_seen_links(seen_links):
 # Obtém links de notícias
 def get_news_links(url):
     try:
+        print(f"[DEBUG] A pesquisar notícias em: {url}")
+
         response = requests.get(url, verify=False)
+
+        print(f"[DEBUG] Resposta do site: {response.status_code}")
+
         if response.status_code != 200:
             print(f"[ERRO] Erro ao acessar a página: {response.status_code}")
             return set()
+
         soup = BeautifulSoup(response.content, 'html.parser')
-        links = {f"{BASE_URL}{a['href']}" for a in soup.find_all("a", href=True) if "news.jsf" in a['href']}
+
+        links = set()
+
+        for a in soup.find_all("a", href=True):
+            href = a["href"]
+
+            # O novo site usa URLs do tipo /destaque/...
+            if "/destaque/" in href:
+                if href.startswith("http"):
+                    full_url = href
+                elif href.startswith("/"):
+                    full_url = BASE_URL.rstrip("/") + href
+                else:
+                    full_url = BASE_URL.rstrip("/") + "/" + href
+
+                links.add(full_url)
+
         print(f"[DEBUG] Links encontrados: {links}")
+
         return links
+
     except Exception as e:
         print(f"[ERRO] Falha ao buscar links: {e}")
         return set()
