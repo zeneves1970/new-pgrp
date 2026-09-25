@@ -14,7 +14,7 @@ TO_EMAIL = os.getenv("TO_EMAIL").split(',')
 DROPBOX_REFRESH_TOKEN = os.getenv("DROPBOX_REFRESH_TOKEN")
 APP_KEY = os.getenv("DROPBOX_APP_KEY")  # Usando variáveis de ambiente
 APP_SECRET = os.getenv("DROPBOX_APP_SECRET")  # Usando variáveis de ambiente
-BASE_URL = "https://www.pgdporto.pt/proc-web/"
+BASE_URL = "https://pgreg-porto.ministeriopublico.pt/"
 URL = f"{BASE_URL}"
 
 # Inicializa o banco de dados local
