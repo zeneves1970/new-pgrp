@@ -346,19 +346,6 @@ def connect_to_dropbox(refresh_token, app_key, app_secret):
         print("[ERRO] Não foi possível obter o access token.")
         return None
 
-print("========== TESTE DE EXTRAÇÃO ==========")
-
-teste_url = "https://pgreg-porto.ministeriopublico.pt/destaque/associacao-criminosa-branqueamento-fraude-fiscal-pronuncia-ministerio-publico-no-diap"
-
-teste = get_article_content(teste_url)
-
-print(f"[TESTE] Título: {teste['title']}")
-print(f"[TESTE] Resumo: {teste['summary']}")
-print(f"[TESTE] Conteúdo:")
-print(teste['content'][:2000])
-
-print("========== FIM TESTE ==========")
-
 # Função para extrair texto mantendo a ordem, com formatação para listas
 def extract_text_ordered(soup):
     content = []
