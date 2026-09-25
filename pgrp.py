@@ -253,6 +253,9 @@ def extract_text_ordered(soup):
 
 # Monitoramento principal
 def monitor_news():
+    print("========== VERSÃO NOVA PGRP ==========")
+    print(f"[DEBUG] BASE_URL = {BASE_URL}")
+    print(f"[DEBUG] URL = {URL}")
     dbx = connect_to_dropbox(DROPBOX_REFRESH_TOKEN, APP_KEY, APP_SECRET)  # Usando variáveis de ambiente
     if not dbx:
         return
