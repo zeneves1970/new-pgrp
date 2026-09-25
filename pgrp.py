@@ -163,40 +163,151 @@ Content-Transfer-Encoding: 8bit
     except Exception as e:
         print("Erro ao enviar e-mail:", e)
 
+```python
 def get_article_content(url):
     try:
+        print(f"[DEBUG] A obter conteúdo da notícia: {url}")
+
         response = requests.get(url, verify=False)
+
+        print(f"[DEBUG] Resposta da notícia: {response.status_code}")
+
         if response.status_code != 200:
-            print(f"Erro ao acessar a notícia: {response.status_code}")
-            return "Erro ao acessar a notícia."
+            print(f"[ERRO] Erro ao acessar a notícia: {response.status_code}")
+            return {
+                "title": "Título não encontrado.",
+                "summary": "Resumo não encontrado.",
+                "content": "Conteúdo vazio."
+            }
 
-        soup = BeautifulSoup(response.content, 'html.parser')
+        soup = BeautifulSoup(response.content, "html.parser")
 
-        # Extrair título
-        title_elem = soup.find("div", class_="news-detail-title")
-        title = title_elem.get_text(strip=True) if title_elem else "Título não encontrado."
+        # ---------------------------------------------------------
+        # TÍTULO
+        # ---------------------------------------------------------
+        title_elem = soup.find("h1")
 
-        # Extrair resumo
-        summary_elem = soup.find("div", class_="news-detail-summary")
-        summary = " ".join(
-            [elem.get_text(strip=True) for elem in summary_elem.find_all(["p", "div"], recursive=True)]
-        ) if summary_elem else "Resumo não encontrado."
+        if title_elem:
+            title = title_elem.get_text(" ", strip=True)
+        else:
+            title = "Título não encontrado."
 
-        # Extrair corpo da notícia
-        body_elem = soup.find("div", class_="news-detail-body")
-        body = extract_text_ordered(body_elem) if body_elem else "Conteúdo vazio."
+        # ---------------------------------------------------------
+        # RESUMO E CONTEÚDO
+        # ---------------------------------------------------------
+        # Na nova estrutura do site, o conteúdo da notícia está
+        # depois do título/data e é apresentado em vários <p>.
+        #
+        # Procuramos primeiro a zona principal da página.
+        # ---------------------------------------------------------
 
-        # Montar o conteúdo final do e-mail
-        article_content = f"""
-        {title}\n
-        {summary}\n
-        {body}
-        """
+        main = soup.find("main")
 
-        return article_content
+        if not main:
+            main = soup
+
+        # Remover elementos que não pertencem à notícia
+        for element in main.find_all(
+            ["script", "style", "nav", "footer", "header"]
+        ):
+            element.decompose()
+
+        # Procurar o título dentro da área principal
+        h1 = main.find("h1")
+
+        # Encontrar o h2 da data, quando existe
+        date_elem = main.find("h2")
+
+        # ---------------------------------------------------------
+        # Recolher os parágrafos da notícia
+        # ---------------------------------------------------------
+        paragraphs = []
+
+        for p in main.find_all("p"):
+            text = p.get_text(" ", strip=True)
+
+            if not text:
+                continue
+
+            # Ignorar alguns textos de navegação/contactos
+            if text in [
+                "Contactos",
+                "Ver todos os contactos"
+            ]:
+                continue
+
+            paragraphs.append(text)
+
+        # ---------------------------------------------------------
+        # O primeiro parágrafo depois da data é o RESUMO.
+        # Os seguintes constituem o CONTEÚDO.
+        # ---------------------------------------------------------
+
+        if paragraphs:
+            summary = paragraphs[0]
+
+            if len(paragraphs) > 1:
+                content = "\n\n".join(paragraphs[1:])
+            else:
+                content = ""
+        else:
+            summary = "Resumo não encontrado."
+            content = "Conteúdo vazio."
+
+        # ---------------------------------------------------------
+        # Limpeza adicional
+        # ---------------------------------------------------------
+
+        # Retirar eventual NUIPC do conteúdo e contactos que
+        # possam ter sido capturados no final da página.
+        content_lines = []
+
+        for paragraph in content.split("\n\n"):
+            paragraph = paragraph.strip()
+
+            if not paragraph:
+                continue
+
+            if paragraph == "Contactos":
+                continue
+
+            if paragraph.startswith("Procuradoria-Geral Regional do Porto"):
+                continue
+
+            if paragraph.startswith("Campo Mártires da Pátria"):
+                continue
+
+            if paragraph.startswith("Telefone:"):
+                continue
+
+            if paragraph.startswith("Fax:"):
+                continue
+
+            if paragraph.startswith("Email:"):
+                continue
+
+            content_lines.append(paragraph)
+
+        content = "\n\n".join(content_lines)
+
+        print(f"[DEBUG] Título encontrado: {title}")
+        print(f"[DEBUG] Resumo encontrado: {summary}")
+        print(f"[DEBUG] Tamanho do conteúdo: {len(content)} caracteres")
+
+        return {
+            "title": title,
+            "summary": summary,
+            "content": content
+        }
+
     except Exception as e:
-        print(f"Erro ao processar a notícia: {e}")
-        return "Erro ao processar a notícia."
+        print(f"[ERRO] Falha ao obter conteúdo da notícia: {e}")
+
+        return {
+            "title": "Título não encontrado.",
+            "summary": "Resumo não encontrado.",
+            "content": "Conteúdo vazio."
+        }
         
 
 # Função para obter um novo access token usando o refresh token
