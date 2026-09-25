@@ -163,7 +163,6 @@ Content-Transfer-Encoding: 8bit
     except Exception as e:
         print("Erro ao enviar e-mail:", e)
 
-```python
 def get_article_content(url):
     try:
         print(f"[DEBUG] A obter conteúdo da notícia: {url}")
