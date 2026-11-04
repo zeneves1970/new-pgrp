@@ -6,9 +6,6 @@ env:
 on:
   workflow_dispatch:
 
-  schedule:
-    - cron: "7,22,37,52 * * * *"
-
 concurrency:
   group: email-job
   cancel-in-progress: true
